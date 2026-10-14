@@ -49,7 +49,7 @@ Six PRs are a planning estimate, not a requirement. Split the time-zone or error
 - Current expanded lint selection: passes across the repository. All 67 original batch diagnostics are resolved; the temporary standard-default assessment now reports 683 remaining diagnostics. A follow-on dictionary pop diagnostic exposed by membership cleanup was resolved while preserving missing-key behavior.
 - Windows acceptance suite: 12 tests passed.
 - Linux acceptance suite: 12 tests passed.
-- Isolated application regression suite: 144 passed, 58 skipped, including both chart-boolean outcomes.
+- Isolated application regression suite: 166 passed, 58 skipped, including both chart-boolean outcomes and 22 targeted cases for scheduler dispatch, task-state expiry, solar-menu updates and report forecast inclusion. The new cases use mocked task execution, temporary state files and an in-memory SQLite database; both the local regression selection and scenario CI include them.
 - Synthetic scenarios: all 40 passed. Final targeted web regression checks: 27 passed.
 - Actual native Windows VS Code diagnostics/save verification: all 18 rules passed in VS Code 1.141.1, with `workspaceTrusted: true` and Ruff 0.16.10. The server log confirms the project launcher. Unsafe fixes remained manual, safe save fixes matched CLI output, and corrected documents cleared diagnostics. Untrusted/bundled-version runs were excluded from acceptance evidence.
 - GitHub CI for the implementation: Ruff lint, model documentation, both Windows/Linux developer-tool jobs, both scenario jobs and clean-install passed. The isolated editor prepare/run procedure was smoke-tested successfully after closing the earlier test window; final helper changes are submitted for a new CI run.
