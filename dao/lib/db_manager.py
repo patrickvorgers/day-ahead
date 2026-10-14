@@ -478,8 +478,8 @@ class DBmanagerObj:
         self,
         tablename: str,
         column_name: str,
-        start: datetime.datetime = None,
-        end: datetime.datetime = None,
+        start: datetime.datetime | None = None,
+        end: datetime.datetime | None = None,
         agg_func: str | None = None,
     ):
         """

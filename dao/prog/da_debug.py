@@ -51,7 +51,7 @@ import math
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar, Self
 
 import pandas as pd
 
@@ -304,7 +304,7 @@ class _FakeLoader:
     ``self.loader.secrets`` during replay. Always empty: no real secrets are
     ever needed for a replayed run (see ``_rehydrate_config``)."""
 
-    secrets: dict = {}
+    secrets: ClassVar[dict[str, Any]] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -522,7 +522,7 @@ class RecordingIO:
         self,
         out_dir: str | Path = "../data/debug_snapshots",
         *,
-        label: str = None,
+        label: str | None = None,
         debug: bool = False,
         png: bool = False,
     ):
@@ -549,7 +549,7 @@ class RecordingIO:
     # -- context manager -----------------------------------------------
 
     # Installeert de patches bij het binnengaan van de with-blok.
-    def __enter__(self) -> RecordingIO:
+    def __enter__(self) -> Self:
         self._install_patches()
         return self
 
@@ -1003,7 +1003,7 @@ class ReplayIO:
     # -- context manager -----------------------------------------------
 
     # Installeert de patches bij het binnengaan van de with-blok.
-    def __enter__(self) -> ReplayIO:
+    def __enter__(self) -> Self:
         self._install_patches()
         return self
 

@@ -102,7 +102,7 @@ def find_discriminated_unions(schema: dict[str, Any]) -> dict[str, dict]:
 def generate_markdown_from_schema(
     schema: dict[str, Any],
     title_prefix: str = "",
-    defs: dict[str, Any] = None,
+    defs: dict[str, Any] | None = None,
     union_context: dict | None = None,
 ) -> tuple[str, list[str]]:
     """Generate markdown documentation from a JSON schema.

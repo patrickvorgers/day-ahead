@@ -45,7 +45,7 @@ class Report(DaBase):
     periodes = {}
 
     def __init__(
-            self, file_name: str = "../data/options.json", _now: datetime.datetime = None
+            self, file_name: str = "../data/options.json", _now: datetime.datetime | None = None
     ):
         super().__init__(file_name=file_name)
         if self.config is None:
@@ -768,7 +768,7 @@ class Report(DaBase):
         """
         return
 
-    def make_periodes(self, _now: datetime.datetime = None):
+    def make_periodes(self, _now: datetime.datetime | None = None):
         def create_dict(name, _vanaf, _tot, interval):
             return {name: {"vanaf": _vanaf, "tot": _tot, "interval": interval}}
 
@@ -1219,7 +1219,7 @@ class Report(DaBase):
             add_from: pd.DataFrame,
             add_to: pd.DataFrame,
             col_name_from: str,
-            col_name_to: str = None,
+            col_name_to: str | None = None,
             negation: bool = False,
     ) -> pd.DataFrame:
         # add_from = add_from.reset_index()
@@ -1583,11 +1583,11 @@ class Report(DaBase):
     def get_energy_balance_data(
             self,
             periode: str,
-            col_dict: dict = None,
-            field: str = None,
-            _vanaf: datetime.datetime = None,
-            _tot: datetime.datetime = None,
-            _interval: str = None,
+            col_dict: dict | None = None,
+            field: str | None = None,
+            _vanaf: datetime.datetime | None = None,
+            _tot: datetime.datetime | None = None,
+            _interval: str | None = None,
     ):
         """
         berekent een report conform de col_dict configuratie
@@ -3502,7 +3502,7 @@ class Report(DaBase):
             .cte("intervals")
         )
 
-    def create_ha_sensors_cte(self, var_codes: list = None):
+    def create_ha_sensors_cte(self, var_codes: list | None = None):
         sensor_rows = []
 
         for code, config in self.energy_balance_dict.items():
@@ -3542,7 +3542,7 @@ class Report(DaBase):
             start: datetime.datetime,
             end: datetime.datetime,
             step: datetime.timedelta,
-            var_codes: list = None
+            var_codes: list | None = None
     ):
         statistics = Table(
             "statistics", self.db_ha.metadata, autoload_with=self.db_ha.engine
@@ -3650,7 +3650,7 @@ class Report(DaBase):
             start: datetime.datetime,
             end: datetime.datetime,
             step: datetime.timedelta,
-            var_codes: list = None
+            var_codes: list | None = None
     ):
         metadata = self.db_da.metadata
         engine = self.db_da.engine
@@ -3785,7 +3785,7 @@ class Report(DaBase):
             start: datetime.datetime,
             end: datetime.datetime,
             aggregate: str = "hour",
-            var_codes: list[str] = None
+            var_codes: list[str] | None = None
     ):
         deltas = {
             "15min": datetime.timedelta(minutes=15),

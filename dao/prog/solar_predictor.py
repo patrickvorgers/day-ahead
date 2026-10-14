@@ -1000,7 +1000,7 @@ class SolarPredictor(DaBase):
             tune_hyperparameters=True,
         )
 
-    def run_train(self, start: dt.datetime = None):
+    def run_train(self, start: dt.datetime | None = None):
         """
         traint alle gedefinieerde ml-objecten
         :param start: optionele begindatum om te trainen, anders een jaar geleden

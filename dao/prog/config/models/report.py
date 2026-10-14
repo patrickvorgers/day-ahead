@@ -121,7 +121,7 @@ class ReportConfig(BaseModel):
             "x-ui-widget-filter": "sensor",
         },
     )
-    co2_intensity_sensor: list[EntityId] | None | EntityId | None = Field(
+    co2_intensity_sensor: list[EntityId] | None | EntityId = Field(
         default=[],
         alias="entity co2-intensity",
         description="HA entity for CO2 intensity",

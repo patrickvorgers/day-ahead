@@ -72,7 +72,7 @@ class DaBase(hass.Hass):
     _loader = None
     _init_lock = threading.Lock()
 
-    def __init__(self, file_name: str = None):
+    def __init__(self, file_name: str | None = None):
         self.file_name = file_name
         path = os.getcwd()
         new_path = "/".join(list(path.split("/")[0:-2]))
@@ -244,7 +244,7 @@ class DaBase(hass.Hass):
     def ha_getter(self, eid):
         return self.get_state(eid).state
 
-    def set_value(self, entity_id: str, value: int | float | str) -> StateList:
+    def set_value(self, entity_id: str, value: float | str) -> StateList:
         try:
             result = super().set_value(entity_id, value)
             state = self.get_state(entity_id).state
@@ -485,17 +485,17 @@ class DaBase(hass.Hass):
             val = getattr(options, key, None)
         return val if val is not None else default
 
-    def set_entity_value(self, entity_key: str, options, value: int | float | str):
+    def set_entity_value(self, entity_key: str, options, value: float | str):
         entity_id = self._get_option(entity_key, options)
         if entity_id is not None:
             self.set_value(entity_id, value)
 
-    def set_entity_option(self, entity_key: str, options, value: int | float | str):
+    def set_entity_option(self, entity_key: str, options, value: float | str):
         entity_id = self._get_option(entity_key, options)
         if entity_id is not None:
             self.select_option(entity_id, value)
 
-    def set_entity_state(self, entity_key: str, options, value: int | float | str):
+    def set_entity_state(self, entity_key: str, options, value: float | str):
         entity_id = self._get_option(entity_key, options)
         if entity_id is not None:
             self.set_state(entity_id, value)
@@ -561,8 +561,8 @@ class DaBase(hass.Hass):
         solar_option: dict,
         vanaf: datetime.datetime,
         tot: datetime.datetime,
-        interval: str = None,
-        _ml_prediction: bool = None,
+        interval: str | None = None,
+        _ml_prediction: bool | None = None,
     ) -> pd.DataFrame:
         """
         berekent de solar production
