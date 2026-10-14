@@ -3,6 +3,7 @@ import json
 import logging
 import math
 import pprint as pp
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import pytz
@@ -37,27 +38,22 @@ class DaPrices:
             resolution = 60
         else:
             resolution = 15
-        now = datetime.datetime.now()
+        now = datetime.datetime.now(ZoneInfo(self.time_zone))
         # start
         if _start is None:
-            start = pd.Timestamp(
-                year=now.year, month=now.month, day=now.day, tz="CET"
-            )
+            start = pd.Timestamp(now.date(), tz=self.time_zone)
         else:
             start = _start
         # end
         if _end is None:
-            end = pd.Timestamp(
-                year=now.year, month=now.month, day=now.day, tz="CET"
-            )
-            if now.hour < 12:
-                end = end + datetime.timedelta(days=1)
-            else:
-                end = end + datetime.timedelta(days=2)
+            # Advance calendar dates before localization: a local day may have
+            # 23 or 25 hours, so adding a fixed duration can select the wrong day.
+            end_date = now.date() + datetime.timedelta(days=1 if now.hour < 12 else 2)
+            end = pd.Timestamp(end_date, tz=self.time_zone)
         else:
             end = _end
 
-        tz = pytz.timezone("CET")
+        tz = pytz.timezone(self.time_zone)
         if start.tzinfo is None:
             start = tz.normalize(tz.localize(start))
 
@@ -124,10 +120,18 @@ class DaPrices:
                 self.db_da.savedata(df_db)
 
     def _get_prices_entsoe(self, start, end):
-        start = pd.Timestamp(
-            year=start.year, month=start.month, day=start.day, tz="CET"
-        )
-        end = pd.Timestamp(year=end.year, month=end.month, day=end.day, tz="CET")
+        def local_midnight(value):
+            stamp = pd.Timestamp(value)
+            if stamp.tzinfo is None:
+                stamp = stamp.tz_localize(self.time_zone)
+            else:
+                stamp = stamp.tz_convert(self.time_zone)
+            return stamp.normalize()
+
+        # ENTSO-E requests cover complete HA-local days. Convert aware inputs
+        # before reading their calendar dates; naive inputs are HA-local.
+        start = local_midnight(start)
+        end = local_midnight(end)
         _ak = self.config.prices.entsoe_api_key
         api_key = _ak.resolve(self._secrets) if _ak is not None else None
         client = EntsoePandasClient(api_key=api_key)

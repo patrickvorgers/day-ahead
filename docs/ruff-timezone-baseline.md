@@ -1,6 +1,6 @@
 # Timezone contracts before batch 4 fixes
 
-Assessment date: 2026-10-14. The original measurement below precedes application fixes. A separate report-period fix now follows that baseline on the same branch, based on batch 3. Timezone rules are not activated yet.
+Assessment date: 2026-10-14. The original measurement below precedes application fixes. Separate report-period and price-boundary fixes now follow that baseline on the same branch, based on batch 3. Timezone rules are not activated yet.
 
 ## Intended contract
 
@@ -48,11 +48,19 @@ Before removing any markers, the matrix produced strict XPASS for exactly four f
 
 Five additional reference-time cases cover summer/autumn midnight conversion, the HA-local 13:00 cutoff and compatibility with naive reference times. The three aware-reference cases failed before the fix; both naive-reference cases already passed.
 
+## Price-boundary fix
+
+Default price request dates and the noon cutoff now use the configured HA timezone. The shared request setup advances calendar dates before localizing midnight rather than adding fixed 24-hour durations. ENTSO-E continues requesting complete local days, converting aware explicit bounds into the configured timezone before selecting their dates; naive bounds are HA-local. Provider-specific Nordpool iteration and other provider response processing are outside this fix.
+
+Before marker removal, exactly six price checks produced strict XPASS: process-zone equality for `local-midnight` and `fall-back`, and calendar-day coverage for those two cases plus `first-0230` and `second-0230`. Only those six entries were removed. All 14 price assertions now pass across the paired-process matrix.
+
+Ten additional isolated cases inspect the actual ENTSO-E client arguments, with network access mocked. They assert explicit UTC boundary instants and elapsed lengths of 23/25 hours for transition days and 47/49 hours for two-day windows spanning those transitions. They also cover HA midnight, both sides of the local noon cutoff, a configured London timezone, and explicit naive/UTC-aware bounds. Before this fix six cases failed and four passed, including the already-correct spring day; all ten now pass.
+
 ## Running and retiring known failures
 
-The original 28 failures had narrow case/function entries in `KNOWN_FAILURES`, with `xfail(strict=True, raises=AssertionError)`. After the report fix, 24 remain; routine matrix output is **25 passed, 24 xfailed**. Those failures are explicitly unresolved and are never reported as passing coverage. A newly passing known case produces a strict XPASS failure until its entry is removed. Unexpected exceptions and failures of previously passing cases fail CI normally.
+The original 28 failures had narrow case/function entries in `KNOWN_FAILURES`, with `xfail(strict=True, raises=AssertionError)`. After the report fix, 24 remained; after the price-boundary fix, routine matrix output is **31 passed, 18 xfailed**. Those failures are explicitly unresolved and are never reported as passing coverage. A newly passing known case produces a strict XPASS failure until its entry is removed. Unexpected exceptions and failures of previously passing cases fail CI normally.
 
-The original full isolated regression suite reported **214 passed, 58 skipped, 28 xfailed**. After the report fix and five additional reference-time cases it reports **223 passed, 58 skipped, 24 xfailed**. The existing 58 skips retain their previous meaning; they are separate from the measured timezone failures.
+The original full isolated regression suite reported **214 passed, 58 skipped, 28 xfailed**. After the report fix and five additional reference-time cases it reported **223 passed, 58 skipped, 24 xfailed**. With the price-boundary fix and its ten additional cases it reports **239 passed, 58 skipped, 18 xfailed**. The existing 58 skips retain their previous meaning; they are separate from the measured timezone failures.
 
 Run the complete matrix in a Linux development environment:
 
