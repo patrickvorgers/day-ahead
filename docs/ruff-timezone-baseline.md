@@ -56,6 +56,21 @@ Before marker removal, exactly six price checks produced strict XPASS: process-z
 
 Ten additional isolated cases inspect the actual ENTSO-E client arguments, with network access mocked. They assert explicit UTC boundary instants and elapsed lengths of 23/25 hours for transition days and 47/49 hours for two-day windows spanning those transitions. They also cover HA midnight, both sides of the local noon cutoff, a configured London timezone, and explicit naive/UTC-aware bounds. Before this fix six cases failed and four passed, including the already-correct spring day; all ten now pass.
 
+## Scheduler transition contract for the next fix
+
+This section records the target behavior; the scheduler implementation and continuous-transition tests are still pending. The current matrix checks individual dispatches and does not establish this contract yet.
+
+- Match supported `HHMM` and `xxMM` patterns against Home Assistant's local clock. During an autumn transition, both physical occurrences of a matching minute are eligible: `0230` runs twice, one hour apart, and `xx30` runs in both repeated hours. This is eligibility, not a delivery guarantee when the scheduler is stopped or busy.
+- Skip nonexistent local minutes during the spring transition; do not move a `0230` entry to `0300` or catch it up later.
+- Identify a dispatch by its schedule entry and physical UTC minute, not just its local clock label. Avoid duplicate dispatch of that entry for the same physical minute within one running scheduler process. Restart persistence and overlapping schedule-entry deduplication are separate concerns.
+- Interpret the configured start offset as elapsed seconds before the physical scheduled minute. Use the physical timeline for minute progression and waiting, converting to HA time for pattern matching.
+- Do not introduce catch-up after restarts or blocking tasks. Preserve sequential task execution. Include the UTC offset in scheduler time logs so the two occurrences of 02:30 can be distinguished.
+- `02xx` is recognized by the dispatch code but rejected by the configuration validator. It is not a supported configuration pattern; adding it is outside this timezone fix.
+
+No built-in scheduler action has a verified exactly-once-per-calendar-day requirement. This does not establish that all actions are idempotent. Optimization can write HA controls and send notifications; a second run an hour later is a new calculation with possible external effects. Collection can repeat provider requests, training and baseload calculation can repeat work and replace outputs, and cleanup/consolidation can run again. Do not silently add action-specific suppression during this fix. Users needing daily maintenance outside the repeated hour can schedule it at a valid time such as 04:00 in Europe/Amsterdam; other zones need their own transition check.
+
+Acceptance must exercise continuous physical-minute sequences across both transitions in UTC and Europe/Amsterdam processes: two eligible `0230` executions during autumn, none during spring, both repeated-hour matches for `xxMM`, no repeated dispatch of one entry for the same physical minute, and correct elapsed start offsets. Task execution must remain mocked so no external controls are changed. Do not claim exactly-once delivery across crashes or restarts.
+
 ## Running and retiring known failures
 
 The original 28 failures had narrow case/function entries in `KNOWN_FAILURES`, with `xfail(strict=True, raises=AssertionError)`. After the report fix, 24 remained; after the price-boundary fix, routine matrix output is **31 passed, 18 xfailed**. Those failures are explicitly unresolved and are never reported as passing coverage. A newly passing known case produces a strict XPASS failure until its entry is removed. Unexpected exceptions and failures of previously passing cases fail CI normally.
