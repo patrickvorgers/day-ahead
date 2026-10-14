@@ -21,7 +21,8 @@ def client():
     return app.test_client()
 
 
-def test_datasets_config_reflects_variable_table(monkeypatch):
+@pytest.mark.parametrize(("dim", "stepped"), [("kWh", False), ("euro/kWh", True)])
+def test_datasets_config_reflects_variable_table(monkeypatch, dim, stepped):
     engine = create_engine("sqlite:///:memory:")
     metadata = MetaData()
     variables = Table(
@@ -31,7 +32,7 @@ def test_datasets_config_reflects_variable_table(monkeypatch):
     )
     metadata.create_all(engine)
     with engine.begin() as connection:
-        connection.execute(variables.insert(), {"id": 1, "name": "Consumption", "code": "cons", "dim": "kWh"})
+        connection.execute(variables.insert(), {"id": 1, "name": "Consumption", "code": "cons", "dim": dim})
     report = Mock()
     report.db_da.metadata = MetaData()
     report.db_da.engine = engine
@@ -41,6 +42,7 @@ def test_datasets_config_reflects_variable_table(monkeypatch):
         assert len(datasets) == 1
         assert datasets[0]["label"] == "Consumption"
         assert datasets[0]["code"] == "cons"
+        assert datasets[0]["stepped"] is stepped
     finally:
         engine.dispose()
 
