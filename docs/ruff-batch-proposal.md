@@ -53,6 +53,27 @@ Verification:
 - Actual native Windows VS Code 1.141.1 verification: all 20 rule fixtures passed diagnostics, explicit-save and correction checks in the trusted workspace using the pinned Ruff 0.16.10 launcher. Neither new logging rule has a safe automatic fix; saving agrees with CLI behavior and manual corrections clear the diagnostics.
 - GitHub CI results are recorded in the logging draft pull request.
 
+## Third pull request - annotations and report state
+
+Branch: `chore/ruff-annotations-state`, based on `chore/ruff-logging`. Review against the logging branch to keep both earlier batches and the developer-environment changes outside this diff. Keep the dependent drafts separate until their upstream merges, then align this branch with upstream before submitting it there.
+
+This batch resolves 37 diagnostics across 12 files and enables `PYI016`, `PYI034`, `PYI041`, `RUF012` and `RUF013` together in the shared configuration:
+
+- Twenty-eight optional parameter annotations explicitly include `None`; defaults and function bodies are preserved.
+- Four numeric parameter unions omit redundant `int` members. Integers remain accepted under the typing numeric convention; no runtime conversion is added.
+- Two context-manager return annotations use `Self`, reflecting the returned instance and preserving inherited context behavior.
+- One duplicate `None` union member is removed from the reporting configuration. Python already normalizes that union; configuration validation, serialization, generated schema and documentation remain unchanged.
+- The replay `_FakeLoader.secrets` dictionary is explicitly annotated `ClassVar`, preserving its existing shared, read-only use. It is not presented as a demonstrated bug fix.
+- `Report.periodes` is initialized per instance. Previously, constructing another report or recalculating its periods could overwrite the first report's periods because both used the class dictionary. This is an intentional bug fix, isolated in its own commit rather than hidden among annotation changes. It does not change period calculations or time-zone policy within one report.
+
+Verification:
+
+- Both report-isolation regression tests failed on the original code and passed after the fix. They cover different reference dates, recalculation and custom period keys. The former class-level monkeypatch in the HA-query fixture is removed so those tests also use the instance dictionary.
+- Nine additional cases cover CO2 configuration roundtrips/validation and inherited debug-context identity, cleanup and exception propagation. All 11 new cases are included in local verification and CI.
+- Full isolated Linux regression suite: 193 passed, 58 skipped. Synthetic scenario results and GitHub CI are recorded in the draft pull request.
+- Windows/Linux tooling acceptance and actual VS Code verification cover all 25 adopted rule fixtures; results are recorded in the draft pull request. Neither server-only checks nor the native editor check are presented as container-editor verification.
+- Repository lint passes without suppressions; the refreshed standard-default assessment reports 249 remaining diagnostics. Regenerating `SETTINGS.md` and `config_schema.json` produces no changes.
+
 ## Completion and sequencing
 
 Each PR activates its rules in the shared configuration together with corrections and justified narrow exceptions. VS Code, hooks and CI therefore receive the same new checks as soon as the PR is merged. PR #916 remains unchanged; prepare the first batch on a dependent branch and adjust its base after #916 merges.

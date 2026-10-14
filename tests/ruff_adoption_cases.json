@@ -98,5 +98,30 @@
     "code": "TRY401",
     "invalid": "import logging\n\nlogger = logging.getLogger(__name__)\ntry:\n    int(\"invalid\")\nexcept ValueError as exc:\n    logger.exception(\"Conversion failed: %s\", exc)\n",
     "corrected": "import logging\n\nlogger = logging.getLogger(__name__)\ntry:\n    int(\"invalid\")\nexcept ValueError:\n    logger.exception(\"Conversion failed\")\n"
+  },
+  {
+    "code": "PYI016",
+    "invalid": "def example(value: int | None | None):\n    return value\n",
+    "corrected": "def example(value: int | None):\n    return value\n"
+  },
+  {
+    "code": "PYI034",
+    "invalid": "class Example:\n    def __enter__(self) -> \"Example\":\n        return self\n",
+    "corrected": "from typing import Self\n\n\nclass Example:\n    def __enter__(self) -> Self:\n        return self\n"
+  },
+  {
+    "code": "PYI041",
+    "invalid": "def example(value: int | float):\n    return value\n",
+    "corrected": "def example(value: float):\n    return value\n"
+  },
+  {
+    "code": "RUF012",
+    "invalid": "class Example:\n    values = []\n",
+    "corrected": "from typing import ClassVar\n\n\nclass Example:\n    values: ClassVar[list[int]] = []\n"
+  },
+  {
+    "code": "RUF013",
+    "invalid": "def example(value: int = None):\n    return value\n",
+    "corrected": "def example(value: int | None = None):\n    return value\n"
   }
 ]
