@@ -25,23 +25,6 @@ CASES = [
 pytestmark = pytest.mark.skipif(not hasattr(time, "tzset"), reason="Application subprocess TZ matrix requires POSIX tzset")
 
 
-# Measured failures on the unmodified application. Remove each entry when
-# its fix lands; strict XPASS makes an unnoticed fix fail CI instead of hiding it.
-KNOWN_FAILURES = {
-    'test_available_charging_hours_are_elapsed_hours': ('spring-forward', 'fall-back', 'first-0230'),
-}
-
-
-@pytest.fixture(autouse=True)
-def expected_timezone_failure(request):
-    scenario = request.node.callspec.params["matrix"][0]
-    if scenario in KNOWN_FAILURES.get(request.node.originalname, ()):
-        request.node.add_marker(pytest.mark.xfail(
-            strict=True, raises=AssertionError,
-            reason="Known pre-fix timezone contract failure; see docs/ruff-timezone-baseline.md",
-        ))
-
-
 @pytest.fixture(scope="module", params=CASES, ids=[case[0] for case in CASES])
 def matrix(request):
     name, instant, ready = request.param

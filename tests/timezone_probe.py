@@ -131,7 +131,8 @@ def planning_probe(request):
         "start": local.strftime("%Y-%m-%d %H:%M"),
         "prices": {"cons": [0.2 + hour / 100 for hour in range(24)], "prod": [0.01] * 24},
         "ev": {"target": "golf", "plugged_in": True, "position": "home",
-               "actual_soc": 30.0, "wished_level": 35.0, "instant_charge": False,
+               "actual_soc": 30.0, "wished_level": request.get("wished_level", 35.0),
+               "instant_charge": request.get("instant_charge", False),
                "ready": "+3h"},
         "expect": {"solved": True},
     })
@@ -141,6 +142,13 @@ def planning_probe(request):
     configuration["max_gap"] = {"value": 0.00001}
     expanded = resolve_ev(scenario, configuration)
     target = configuration["electric_vehicle"][expanded.target_index]
+    if request.get("budget_only"):
+        target["capacity"] = 100.0
+        if request.get("instant_charge"):
+            target["entity_instant_start"] = "input_boolean.synthetic_instant_charge"
+            target["entity_instant_level"] = "input_number.synthetic_instant_level"
+            expanded.states[target["entity_instant_start"]] = "on"
+            expanded.states[target["entity_instant_level"]] = request["wished_level"]
     deadline_entity = target["charge_scheduler"]["entity_ready_datetime"]
     expanded.states[deadline_entity] = request["ready"]
     snapshot = build_snapshot(scenario, config=configuration, ev_states=expanded.states)
@@ -174,6 +182,9 @@ def planning_probe(request):
     root = logging.getLogger()
     root.addHandler(handler)
 
+    class StopAtEVBudget(Exception):
+        """Stop an isolated capacity test before model constraints or solving."""
+
     def trace(frame, event, arg):
         if frame.f_code.co_name == "calc_optimum":
             values = frame.f_locals
@@ -204,12 +215,24 @@ def planning_probe(request):
                     "price_count": len(values["price_data"]),
                     "forecast_count": len(values["prog_data"]),
                 }
-            if "hours_avail" in values and "ready" in values and "available_hours" not in observed:
+            if "hours_avail" in values and "ev_stages" in values and "available_hours" not in observed:
                 observed["available_hours"] = values["hours_avail"]
                 observed["charging_clock"] = {
                     "start_label": values["start_dt"].isoformat(),
                     "ready_label": values["ready"].isoformat(),
                 }
+            if request.get("budget_only") and values.get("energy_needed"):
+                index = values["e"]
+                observed["budget"] = {
+                    "instant_charge": values["instant_charge"],
+                    "hours": values["hours_avail"],
+                    "power": values["max_power"][index],
+                    "efficiency": values["ev_charge_stages"][index][-1]["efficiency"],
+                    "max_possible": values["max_possible"],
+                    "energy_needed": values["energy_needed"][index],
+                    "target_soc": values["wished_level"][index],
+                }
+                raise StopAtEVBudget
             if event == "return":
                 observed["start_epoch"] = values.get("start_ts")
                 observed["returned_false"] = arg is False
@@ -245,6 +268,8 @@ def planning_probe(request):
                     try:
                         try:
                             calculator.calc_optimum()
+                        except StopAtEVBudget:
+                            observed["stopped_at_budget"] = True
                         except Exception as error:
                             observed["error"] = {"type": type(error).__name__, "message": str(error)}
                     finally:

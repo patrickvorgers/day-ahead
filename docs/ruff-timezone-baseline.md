@@ -1,6 +1,6 @@
 # Timezone contracts before batch 4 fixes
 
-Assessment date: 2026-10-14. The original measurement below precedes application fixes. Separate report-period, price-boundary, scheduler and optimizer start-clock fixes now follow that baseline on the same branch, based on batch 3. Timezone rules are not activated yet.
+Assessment date: 2026-10-14. The original measurement below precedes application fixes. Separate report-period, price-boundary, scheduler, optimizer start-clock and EV elapsed-time fixes now follow that baseline on the same branch, based on batch 3. Timezone rules are not activated yet.
 
 ## Intended contract
 
@@ -100,11 +100,21 @@ Eight added entry-path tests stop before database/model work. They exercise naiv
 
 The remaining expected failures are elapsed charging hours for `spring-forward`, `fall-back` and `first-0230`. The existing subtraction of naive local labels is unchanged. Other previously observed conversions, including the forecast-end `.timestamp()` boundary, also remain outside this start-clock fix and require separate work even though ReplayIO's unfiltered frames allow the optimizer comparisons to pass.
 
+## EV elapsed-time fix
+
+Available charging hours now subtract the physical start epoch from the HA-local deadline's epoch, clamped at zero. Direct charging uses the last physical grid epoch plus its interval length as the horizon end. It no longer subtracts local wall-clock labels to measure elapsed time. Existing deadline parsing and local input interpretation remain in place; this fix does not add a new policy for ambiguous/nonexistent deadline strings or migrate all later deadline/index handling.
+
+Exactly the last three known matrix cases produced strict XPASS before marker removal: `spring-forward`, `fall-back` and `first-0230`. Only those three markers were removed, together with the now-unused expected-failure fixture. All 63 expanded matrix checks pass normally.
+
+Eight added subprocess cases run identical high-demand EV inputs under UTC and Europe/Amsterdam and observe the actual pre-solver energy-budget calculation. They verify 1/3/2/1 physical hours across spring and the autumn occurrences, a zero-hour expired deadline, an ordinary winter control and direct-charge horizons spanning both transitions. They assert the selected charge mode, maximum achievable energy, clipped energy requirement and adjusted target SOC for a synthetic 100 kWh battery. The direct-charge fixtures explicitly configure their synthetic activation entities. Both physical 24-hour direct-charge horizons now measure 24 hours, where the old wall-clock subtraction measured 25 and 23. Three deadline cases and both direct-charge cases failed before the fix; all eight now pass.
+
+The probe captures final hours after the direct-charge override. Budget-only cases deliberately stop after actual target/energy limiting and before constraint building/solving; they do not claim to verify a high-demand optimal plan. The original matrix still runs real solves, and all 40 existing synthetic scenarios pass after this fix. No live HA, database, provider or device writes are used.
+
 ## Running and retiring known failures
 
-The original 28 failures had narrow case/function entries in `KNOWN_FAILURES`, with `xfail(strict=True, raises=AssertionError)`. After the report fix, 24 remained; after the price-boundary fix, 18 remained. With the scheduler fix, the original matrix output was **38 passed, 11 xfailed**. Added optimizer start-clock controls expanded it to **45 passed, 18 xfailed** before the fix. After the start-clock fix, current output is **60 passed, 3 xfailed**. The remaining failures concern DST elapsed charging time; they are explicitly unresolved and are never reported as passing coverage. A newly passing known case produces a strict XPASS failure until its entry is removed. Unexpected exceptions and failures of previously passing cases fail CI normally.
+The original 28 failures had narrow case/function entries in `KNOWN_FAILURES`, with `xfail(strict=True, raises=AssertionError)`. After the report fix, 24 remained; after the price-boundary fix, 18 remained. With the scheduler fix, the original matrix output was **38 passed, 11 xfailed**. Added optimizer start-clock controls expanded it to **45 passed, 18 xfailed** before the fix. The start-clock fix produced **60 passed, 3 xfailed**. After the EV elapsed-time fix, current output is **63 passed, zero expected failures**. All known-failure markers and the obsolete marker fixture are removed. Each marker was retired only after a measured strict XPASS; the historical measurements remain above.
 
-The original full isolated regression suite reported **214 passed, 58 skipped, 28 xfailed**. After the report fix and five additional reference-time cases it reported **223 passed, 58 skipped, 24 xfailed**. With the price-boundary fix and its ten additional cases it reported **239 passed, 58 skipped, 18 xfailed**. With the scheduler fix and 15 added scheduler cases it reported **261 passed, 58 skipped, 11 xfailed**. The start-clock diagnostic controls expanded it to **268 passed, 58 skipped, 18 xfailed** without application changes. With the start-clock fix and eight entry-path tests it reports **291 passed, 58 skipped, 3 xfailed**. The existing 58 skips retain their previous meaning; they are separate from the measured timezone failures.
+The original full isolated regression suite reported **214 passed, 58 skipped, 28 xfailed**. After the report fix and five additional reference-time cases it reported **223 passed, 58 skipped, 24 xfailed**. With the price-boundary fix and its ten additional cases it reported **239 passed, 58 skipped, 18 xfailed**. With the scheduler fix and 15 added scheduler cases it reported **261 passed, 58 skipped, 11 xfailed**. The start-clock diagnostic controls expanded it to **268 passed, 58 skipped, 18 xfailed** without application changes. With the start-clock fix and eight entry-path tests it reported **291 passed, 58 skipped, 3 xfailed**. With physical EV elapsed time and eight budget cases it reports **302 passed, 58 skipped, zero expected failures**. The existing 58 skips retain their previous meaning; they are separate from the former timezone failures.
 
 Run the complete matrix in a Linux development environment:
 
@@ -112,11 +122,11 @@ Run the complete matrix in a Linux development environment:
 .venv/bin/python -m pytest -c pytest-dev.ini dao/tests/prog/test_timezone_contracts.py -q -rxX
 ```
 
-Expose the remaining failures (run on the original baseline revision to reproduce the pre-fix measurement):
+Reproduce the unmasked pre-fix failures by running this command on the original baseline revision; on the current revision it succeeds:
 
 ```bash
 .venv/bin/python -m pytest -c pytest-dev.ini dao/tests/prog/test_timezone_contracts.py \
   --runxfail --junitxml=.local/timezone-unmasked.xml -q
 ```
 
-The unmasked command intentionally exits nonzero while defects remain. The matrix is included in the local isolated test selection, scenario CI regression step and Dev Container clean-install verification. For each batch 4 fix, remove only the corresponding known-failure entries and confirm those assertions pass in both process zones. Keep the HA contract and physical fixture unchanged unless a separately reviewed interface change requires adapting the replay transport representation.
+The matrix and added EV budget tests are included in local isolated verification, scenario CI and Dev Container clean-install verification. A green matrix covers these fixtures; it does not establish full timezone correctness or complete DTZ adoption. In particular, the separately traced forecast-end timestamp conversion and other untested paths still require review. Keep the HA contract and physical fixture unchanged unless a separately reviewed interface change requires adapting the replay transport representation.
