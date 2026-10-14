@@ -3,6 +3,7 @@ import logging
 import sys
 import time
 from subprocess import Popen
+from zoneinfo import ZoneInfo
 
 from da_base import DaBase
 
@@ -32,24 +33,27 @@ class DaScheduler(DaBase):
         # if not (self.notification_entity is None) and self.notification_opstarten:
         #     self.set_value(self.notification_entity, "DAO scheduler gestart " +
         #                    datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S'))
-        last_minute = -1
+        # Progress on the physical timeline; local minutes can repeat or vanish.
+        zone = ZoneInfo(self.time_zone)
+        last_minute = None
         while True:
-            t = datetime.datetime.now()
-            _LOGGER.debug(f"Entry loop at {t}")
+            t = datetime.datetime.now(datetime.UTC)
+            _LOGGER.debug(f"Entry loop at {t.astimezone(zone)}")
             next_min = t.replace(second=0, microsecond=0) + datetime.timedelta(minutes=1)
-            if next_min.minute == last_minute:
+            if last_minute is not None and next_min <= last_minute:
                 time.sleep(max(0, (next_min - t).total_seconds()))
                 continue
-            last_minute = next_min.minute
-            _LOGGER.debug(f"Next minute {next_min}")
+            last_minute = next_min
+            local_min = next_min.astimezone(zone)
+            _LOGGER.debug(f"Next minute {local_min}")
             start_at = next_min - datetime.timedelta(seconds=self.offset_start)
-            _LOGGER.debug(f"Geplande start at {start_at}")
+            _LOGGER.debug(f"Geplande start at {start_at.astimezone(zone)}")
             time.sleep(max(0, (start_at - t).total_seconds()))
             if not self.active:
                 continue
-            _LOGGER.debug(f"Gestart op {datetime.datetime.now()}")
-            hour = next_min.hour
-            minute = next_min.minute
+            _LOGGER.debug(f"Gestart op {datetime.datetime.now(datetime.UTC).astimezone(zone)}")
+            hour = local_min.hour
+            minute = local_min.minute
             key0 = str(hour).zfill(2) + str(minute).zfill(2)
             # ieder uur in dezelfde minuut voorbeeld xx15
             key1 = "xx" + str(minute).zfill(2)

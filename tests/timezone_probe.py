@@ -86,7 +86,7 @@ def probe(request):
     next_instant = instant.replace(second=0, microsecond=0) + dt.timedelta(minutes=1)
     expected_pattern = next_instant.astimezone(ha_zone).strftime("%H%M")
     clock = Mock()
-    clock.now.side_effect = [clock_module.datetime.now(), clock_module.datetime.now(), EndIteration()]
+    clock.now.side_effect = [clock_module.datetime.now(dt.UTC), clock_module.datetime.now(dt.UTC), EndIteration()]
     scheduler = da_scheduler.DaScheduler.__new__(da_scheduler.DaScheduler)
     scheduler.active = True
     scheduler.offset_start = 0
@@ -94,7 +94,7 @@ def probe(request):
     scheduler.scheduler_tasks = {expected_pattern: "calculate"}
     scheduler.tasks = {"calculate": {"function": "calculate"}}
     scheduler.run_task_process = Mock(return_value=True)
-    with patch.object(da_scheduler, "datetime", SimpleNamespace(datetime=clock, timedelta=dt.timedelta)), \
+    with patch.object(da_scheduler, "datetime", SimpleNamespace(datetime=clock, timedelta=dt.timedelta, UTC=dt.UTC)), \
             patch.object(da_scheduler, "time", SimpleNamespace(sleep=Mock())):
         try:
             scheduler.scheduler()

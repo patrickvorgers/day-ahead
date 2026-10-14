@@ -76,7 +76,7 @@ Verification:
 
 ## Fourth batch preparation - timezone regression baseline
 
-Branch: `chore/ruff-timezone-tests`, based on `chore/ruff-annotations-state`. This branch records the behavior before timezone fixes and adds report-period and price-boundary fixes in separate commits. It does not yet enable the six DTZ rules. Review against batch 3 to keep earlier changes outside the diff.
+Branch: `chore/ruff-timezone-tests`, based on `chore/ruff-annotations-state`. This branch records the behavior before timezone fixes and adds report-period, price-boundary and scheduler fixes in separate commits. It does not yet enable the six DTZ rules. Review against batch 3 to keep earlier changes outside the diff.
 
 The new Linux subprocess matrix runs identical HA configuration and canonical planning data under UTC and Europe/Amsterdam, with seven fixed UTC anchors covering winter, summer, local midnight, both DST transitions and both occurrences of 02:30 during the autumn transition. It exercises report periods, scheduler dispatch, provider bounds, actual EV availability and a real optimizer solve. No live HA, database or provider access is needed.
 
@@ -86,7 +86,9 @@ The first fix makes report-period generation use the HA clock, including convers
 
 The second fix makes default price-request dates and the noon cutoff use HA time and advances calendar dates before localizing midnight. ENTSO-E interprets explicit bounds in HA time before selecting complete local days. Six additional expected failures were proven to pass before their markers were removed; current matrix output is 31 passed and 18 xfailed. Ten added request-boundary cases verify 23-/25-hour days, 47-/49-hour two-day windows, local midnight/noon, configured timezone selection and explicit bounds. Six failed before the fix and all ten now pass. The shared default request setup also supplies the other providers; their individual fetching loops and response processing are unchanged.
 
-The matrix and added boundary cases are included in local regression verification, scenario CI and clean-install. Later timezone fixes must turn the remaining expected failures into ordinary passing assertions while preserving the fixed HA-time contract. Batch 4 remains incomplete until the remaining fixes, rule activation and shared integration acceptance checks are reviewed and verified.
+The third fix advances scheduler target minutes and start offsets on the physical UTC timeline, matches patterns in HA time and distinguishes repeated local minutes using the full UTC instant. Both autumn occurrences are eligible, nonexistent spring minutes are skipped, and no catch-up or action-specific daily suppression is added. Existing entry order/multiplicity and sequential task execution are preserved. Logs include UTC offsets. Twenty-one scheduler tests pass, including 15 added cases covering continuous transition sequences under both process zones with offsets of 0/10/60 seconds, duplicate-minute guarding, blocking tasks and inactive operation. Exactly seven former matrix failures produced strict XPASS before marker removal; current matrix output is 38 passed and 11 xfailed. See the baseline document for the dispatch contract and remaining limitations.
+
+The matrix and added boundary/scheduler cases are included in local regression verification, scenario CI and clean-install. Later timezone fixes must turn the remaining expected failures into ordinary passing assertions while preserving the fixed HA-time contract. Batch 4 remains incomplete until the remaining fixes, rule activation and shared integration acceptance checks are reviewed and verified.
 
 ## Completion and sequencing
 

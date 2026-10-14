@@ -28,7 +28,6 @@ pytestmark = pytest.mark.skipif(not hasattr(time, "tzset"), reason="Application 
 # Measured failures on the unmodified application. Remove each entry when
 # its fix lands; strict XPASS makes an unnoticed fix fail CI instead of hiding it.
 KNOWN_FAILURES = {
-    'test_scheduler_dispatch_uses_ha_clock': ('winter', 'summer', 'local-midnight', 'spring-forward', 'fall-back', 'first-0230', 'second-0230'),
     'test_available_charging_hours_are_elapsed_hours': ('winter', 'summer', 'local-midnight', 'spring-forward', 'fall-back', 'first-0230', 'second-0230'),
     'test_actual_optimizer_plan_is_process_zone_independent': ('winter', 'summer', 'local-midnight', 'spring-forward'),
 }
