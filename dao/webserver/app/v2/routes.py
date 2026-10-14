@@ -450,7 +450,7 @@ def task_state():
     ), headers
 
 
-def reports_gen(subject: str, view: str, period: str, solar_item=None, date: datetime.datetime = None):
+def reports_gen(subject: str, view: str, period: str, solar_item=None, date: datetime.datetime | None = None):
     report = Report(app_datapath + "/options.json")
     prognose = period in ["vandaag en morgen", "morgen", "today_with_forecast"]
     if period == "today_with_forecast":

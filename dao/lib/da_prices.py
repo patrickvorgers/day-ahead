@@ -19,8 +19,8 @@ class DaPrices:
     def __init__(
         self, config,
             db_da: DBmanagerObj,
-            country: str = None,
-            secrets: dict = None,
+            country: str | None = None,
+            secrets: dict | None = None,
             time_zone: str = "CET"
     ):
         self.config = config

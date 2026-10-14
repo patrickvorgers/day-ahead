@@ -25,7 +25,7 @@ class Meteo:
         db_da: DBmanagerObj,
         latitude: float,
         longitude: float,
-        secrets: dict = None,
+        secrets: dict | None = None,
     ):
         self.config = config
         self.db_da = db_da
@@ -596,7 +596,7 @@ class Meteo:
         self.db_da.savedata(df_db)
         """
 
-    def get_avg_temperature(self, date: datetime.datetime = None) -> float:
+    def get_avg_temperature(self, date: datetime.datetime | None = None) -> float:
         """
         Berekent gewogen met temperatuur grens van 16 oC
         :param date: de datum waarvoor de berekening wordt gevraagd
@@ -660,7 +660,7 @@ class Meteo:
 
     def calc_graaddagen(
         self,
-        date: datetime.datetime = None,
+        date: datetime.datetime | None = None,
         avg_temp: float | None = None,
         weighted: bool = False,
     ) -> float:

@@ -68,7 +68,7 @@ def get_grid_data(
     engine: str,
     source: str,
     vanaf: datetime.datetime,
-    tot: datetime.datetime = None,
+    tot: datetime.datetime | None = None,
     interval: str = "uur",
 ) -> tuple:
     file_name = "../data/options_" + engine + ".json"

@@ -10,7 +10,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class DaScheduler(DaBase):
-    def __init__(self, file_name: str = None):
+    def __init__(self, file_name: str | None = None):
         super().__init__(file_name)
         self.active = self.config.scheduler.active
         self.offset_start = self.config.scheduler.offset or 0

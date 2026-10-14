@@ -80,7 +80,6 @@ def database(request, tmp_path, monkeypatch):
             },
         }))
         monkeypatch.setattr(db_connections, '_db_ha', None)
-        monkeypatch.setattr(Report, 'periodes', {})
 
         def initialize_test_base(self, file_name=None):
             self.loader = ConfigurationLoader(Path(file_name))
