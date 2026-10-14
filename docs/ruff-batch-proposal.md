@@ -17,7 +17,7 @@ The assessment removes the explicit lint selection from a temporary copy of ruff
 
 The five lint batches account for all 750 current diagnostics: 67 + 400 + 37 + 186 + 60. The final lint batch includes 51 error/control-flow diagnostics and nine unused-suppression diagnostics. RUF100 is deferred until the final selection is established: several current suppressions refer to rules enabled by the existing gate but not by the assessed defaults. Do not remove valid suppressions merely because an assessment configuration disables their rules.
 
-## First pull request â€” implemented; acceptance verification in progress
+## First pull request - implemented; acceptance verification in progress
 
 Branch: `chore/ruff-first-batch`. The branch includes the acceptance-criteria change from the former adoption-plan branch. Submit this batch separately from the developer-environment PR; while that PR is open, review against `chore/development-environment` to isolate the batch diff.
 
@@ -50,8 +50,8 @@ Six PRs are a planning estimate, not a requirement. Split the time-zone or error
 - Windows acceptance suite: 12 tests passed.
 - Linux acceptance suite: 12 tests passed.
 - Isolated application regression suite: 144 passed, 58 skipped, including both chart-boolean outcomes.
-- Synthetic scenarios: all 40 passed.
+- Synthetic scenarios: all 40 passed. Final targeted web regression checks: 27 passed.
 - Actual VS Code diagnostics/save verification: pending trusted-workspace rerun. An untrusted-workspace run was rejected as acceptance evidence because it used the extension bundled version.
-- Remote CI for the final branch: pending.
+- GitHub CI for the implementation: Ruff lint, model documentation, both Windows/Linux developer-tool jobs, both scenario jobs and clean-install passed. Documentation-only status updates do not replace the pending real-editor verification.
 
 Update this status with final results before offering the batch for review.
