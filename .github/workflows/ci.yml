@@ -87,7 +87,9 @@ jobs:
         run: python -m dao.prog.da_debug scenario-run --report
 
       - name: Run isolated regression tests
-        timeout-minutes: 5
+        # Paired timezone subprocesses and real solves exceed five minutes on
+        # hosted runners; each probe still has its own bounded timeout.
+        timeout-minutes: 15
         env:
           TZ: UTC
         # The legacy test_dao.py and EV harness require a user's live setup.
