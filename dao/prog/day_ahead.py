@@ -155,10 +155,18 @@ class DaCalc(DaBase):
             start, end=None, interval=self.interval,
             extension=0
         )
+
+        def interval_end_epoch(value, seconds):
+            # Localize the interval start before adding physical seconds. Adding
+            # to a naive label first can skip the repeated hour in autumn.
+            value = pd.Timestamp(value).to_pydatetime()
+            if value.utcoffset() is None:
+                value = value.replace(tzinfo=planning_zone)
+            return value.timestamp() + seconds
+
         if horizon_extension > 0:
-            start_prediction_dt = fixed_price_data["time"].iloc[-1] + dt.timedelta(seconds=self.interval_s)
-            start_prediction_dt = start_prediction_dt.to_pydatetime()
-            start_prediction_ts = start_prediction_dt.timestamp()
+            start_prediction_ts = interval_end_epoch(fixed_price_data["time"].iloc[-1], self.interval_s)
+            start_prediction_dt = dt.datetime.fromtimestamp(start_prediction_ts, planning_zone).replace(tzinfo=None)
             pred_price_data = report.get_price_data(
                 start_prediction_dt, end=None, interval="1hour",
                 extension=horizon_extension
@@ -186,9 +194,8 @@ class DaCalc(DaBase):
         while price_data.iloc[0]["time"] < start_interval_dt:
             price_data = price_data.iloc[1:]
         price_data.index = pd.to_datetime(price_data["time"])
-        end_fixed_dt = (fixed_price_data.iloc[-1]["time"] + dt.timedelta(seconds=self.interval_s))
-        end_fixed_dt = end_fixed_dt.to_pydatetime()
-        end_fixed_ts = end_fixed_dt.timestamp()
+        end_fixed_ts = interval_end_epoch(fixed_price_data.iloc[-1]["time"], self.interval_s)
+        end_fixed_dt = dt.datetime.fromtimestamp(end_fixed_ts, planning_zone).replace(tzinfo=None)
         fixed_prog_data = self.db_da.get_prognose_data(
             start=start_hour, end=end_fixed_ts, interval=self.interval
         )
@@ -196,8 +203,8 @@ class DaCalc(DaBase):
             _LOGGER.error("Er ontbreken meteo waarden, de berekening wordt afgebroken")
             return False
         if horizon_extension > 0:
-            end_prediction_dt = (pred_price_data.iloc[-1]["time"] + dt.timedelta(seconds=3600)).to_pydatetime()
-            end_prediction_ts = end_prediction_dt.timestamp()
+            end_prediction_ts = interval_end_epoch(pred_price_data.iloc[-1]["time"], 3600)
+            end_prediction_dt = dt.datetime.fromtimestamp(end_prediction_ts, planning_zone).replace(tzinfo=None)
             pred_prog_data = self.db_da.get_prognose_data(
                 start=start_prediction_ts, end=end_prediction_ts, interval="1hour"
             )

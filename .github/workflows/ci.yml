@@ -95,7 +95,7 @@ jobs:
         # The legacy test_dao.py and EV harness require a user's live setup.
         # The scenario corpus above exercises EV planning hermetically instead.
         run: |
-          pytest -q \
+          pytest -q --durations=10 \
             dao/tests/config/test_models.py \
             dao/tests/config/test_boiler_union.py \
             dao/tests/config/test_migrations.py \
@@ -111,6 +111,7 @@ jobs:
             dao/tests/prog/test_price_boundaries.py \
             dao/tests/prog/test_optimizer_start.py \
             dao/tests/prog/test_ev_elapsed_time.py \
+            dao/tests/prog/test_forecast_boundaries.py \
             dao/tests/prog/test_annotation_contracts.py \
             dao/tests/prog/test_timezone_contracts.py \
             dao/tests/webserver/test_route_security.py

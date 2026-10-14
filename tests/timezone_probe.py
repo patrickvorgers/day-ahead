@@ -195,7 +195,7 @@ def planning_probe(request):
                     "interval_epoch": values["start_interval_ts"],
                     "interval_label": values["start_interval_dt"].isoformat(),
                 }
-            if "end_fixed_ts" in values and "forecast_end" not in observed:
+            if "end_fixed_ts" in values and "end_fixed_dt" in values and "forecast_end" not in observed:
                 observed["forecast_end"] = {
                     "label": values["end_fixed_dt"].isoformat(),
                     "query_epoch": values["end_fixed_ts"],

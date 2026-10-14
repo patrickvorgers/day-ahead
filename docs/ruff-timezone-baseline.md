@@ -110,6 +110,18 @@ Eight added subprocess cases run identical high-demand EV inputs under UTC and E
 
 The probe captures final hours after the direct-charge override. Budget-only cases deliberately stop after actual target/energy limiting and before constraint building/solving; they do not claim to verify a high-demand optimal plan. The original matrix still runs real solves, and all 40 existing synthetic scenarios pass after this fix. No live HA, database, provider or device writes are used.
 
+## Forecast boundary conversion and real selection
+
+The optimizer now interprets the last fixed/predicted price interval in HA time before adding its physical interval length. This supplies the fixed forecast end, predicted forecast start and predicted forecast end as epochs independent of the process zone. It avoids both naive `.timestamp()` interpretation and wall-clock addition across the autumn repeated hour. Local labels used for existing reporting interfaces are reconstructed from those physical boundaries.
+
+`test_forecast_boundaries.py` invokes the actual optimizer preprocessing, then executes real `DBmanagerObj` SQLAlchemy queries against an in-memory SQLite database. Only the price-frame source is stubbed. Sentinel rows exist just before the start, at the start, just before each end, at the end and just after it. The test asserts actual selected epoch rows and inclusive-start/exclusive-end predicates, not just the arguments passed to a mock. For quarter-hour mode it observes the real field-query rows before interpolation; hourly mode uses the real joined forecast query.
+
+All 32 cases pass across UTC/Amsterdam process zones, hourly/quarter-hour intervals, fixed-only/extended forecasts, winter/summer and the skipped/repeated-hour boundaries. Twenty cases selected incorrect rows before the fix, including end/after-end sentinels. The autumn case specifically ends the first repeated-hour interval at the second occurrence of 02:00. Ambiguous naive source labels that have already lost occurrence information remain a separate data-representation limitation; this test does not establish MySQL/PostgreSQL execution or correct timezone rendering of every SQLite display label.
+
+Full isolated suite: **334 passed, 58 skipped, no expected failures**. All 40 existing synthetic scenarios pass. The probe now waits for both boundary variables before recording the new assignment order.
+
+CI investigation found the previous start-clock and elapsed-time commits' scenario jobs hit the five-minute isolated-regression step limit after their 40 scenario solves passed. The last elapsed-time commit's other completed checks, including clean-install, passed. A separate CI commit raises that step to 15 minutes for the expanded paired-process/real-solver suite; individual probe timeouts remain bounded. CI prints the ten slowest test durations. Fresh remote status must be checked independently; the local suite result does not imply the hosted run passed.
+
 ## Running and retiring known failures
 
 The original 28 failures had narrow case/function entries in `KNOWN_FAILURES`, with `xfail(strict=True, raises=AssertionError)`. After the report fix, 24 remained; after the price-boundary fix, 18 remained. With the scheduler fix, the original matrix output was **38 passed, 11 xfailed**. Added optimizer start-clock controls expanded it to **45 passed, 18 xfailed** before the fix. The start-clock fix produced **60 passed, 3 xfailed**. After the EV elapsed-time fix, current output is **63 passed, zero expected failures**. All known-failure markers and the obsolete marker fixture are removed. Each marker was retired only after a measured strict XPASS; the historical measurements remain above.
@@ -129,4 +141,4 @@ Reproduce the unmasked pre-fix failures by running this command on the original 
   --runxfail --junitxml=.local/timezone-unmasked.xml -q
 ```
 
-The matrix and added EV budget tests are included in local isolated verification, scenario CI and Dev Container clean-install verification. A green matrix covers these fixtures; it does not establish full timezone correctness or complete DTZ adoption. In particular, the separately traced forecast-end timestamp conversion and other untested paths still require review. Keep the HA contract and physical fixture unchanged unless a separately reviewed interface change requires adapting the replay transport representation.
+The matrix, EV budget and forecast-selection tests are included in local isolated verification, scenario CI and Dev Container clean-install verification. A green matrix covers these fixtures; it does not establish full timezone correctness or complete DTZ adoption. Other untested provider/database/device-window paths still require review. Keep the HA contract and physical fixture unchanged unless a separately reviewed interface change requires adapting the replay transport representation.
