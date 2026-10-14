@@ -15,6 +15,7 @@ from dao.prog.da_report import Report
 def report_factory(monkeypatch):
     def initialize_base(self, file_name=None):
         self.config = SimpleNamespace(report=ReportConfig(), graphics=SimpleNamespace(style="default"))
+        self.time_zone = "Europe/Amsterdam"
         self.prices_options = SimpleNamespace(last_invoice=dt.date(2026, 1, 1))
 
     monkeypatch.setattr(DaBase, "__init__", initialize_base)
@@ -47,3 +48,22 @@ def test_recalculating_periods_and_custom_keys_stay_with_their_report(report_fac
     assert "custom" not in first.periodes
     assert second.periodes["custom"] == {"interval": "dag"}
     assert second.periodes["vandaag"]["vanaf"] == (now + dt.timedelta(days=1)).replace(hour=0, tzinfo=None)
+
+
+@pytest.mark.parametrize(
+    "now, today, horizon",
+    [
+        (dt.datetime(2026, 7, 1, 22, 30, tzinfo=dt.UTC), dt.datetime(2026, 7, 2), dt.datetime(2026, 7, 3)),
+        (dt.datetime(2026, 10, 24, 23, 30, tzinfo=dt.UTC), dt.datetime(2026, 10, 25), dt.datetime(2026, 10, 26)),
+        (dt.datetime(2026, 7, 1, 11, tzinfo=dt.UTC), dt.datetime(2026, 7, 1), dt.datetime(2026, 7, 3)),
+        (dt.datetime(2026, 7, 1, 12, 59), dt.datetime(2026, 7, 1), dt.datetime(2026, 7, 2)),
+        (dt.datetime(2026, 7, 1, 13), dt.datetime(2026, 7, 1), dt.datetime(2026, 7, 3)),
+    ],
+    ids=["aware-summer-midnight", "aware-autumn-midnight", "aware-ha-afternoon", "naive-before-cutoff", "naive-at-cutoff"],
+)
+def test_reference_time_uses_ha_calendar_and_preserves_naive_bounds(report_factory, now, today, horizon):
+    report = report_factory(now)
+
+    assert report.periodes["vandaag"]["vanaf"] == today
+    assert report.periodes["dit jaar"]["tot"] == horizon
+    assert all(period[key].tzinfo is None for period in report.periodes.values() for key in ("vanaf", "tot"))

@@ -76,13 +76,15 @@ Verification:
 
 ## Fourth batch preparation - timezone regression baseline
 
-Branch: `chore/ruff-timezone-tests`, based on `chore/ruff-annotations-state`. This preparation adds tests and records the behavior before timezone fixes; it does not enable the six DTZ rules or change application code. Review against batch 3 to keep earlier changes outside the diff.
+Branch: `chore/ruff-timezone-tests`, based on `chore/ruff-annotations-state`. This branch records the behavior before timezone fixes and adds the first report-period fix in a separate commit. It does not yet enable the six DTZ rules. Review against batch 3 to keep earlier changes outside the diff.
 
 The new Linux subprocess matrix runs identical HA configuration and canonical planning data under UTC and Europe/Amsterdam, with seven fixed UTC anchors covering winter, summer, local midnight, both DST transitions and both occurrences of 02:30 during the autumn transition. It exercises report periods, scheduler dispatch, provider bounds, actual EV availability and a real optimizer solve. No live HA, database or provider access is needed.
 
 The pre-fix measurement is 21 passed and 28 failed assertions across 49 checks, with no setup errors. Those exact case/function combinations are recorded as strict expected failures, not passing coverage. A fix that makes one pass produces strict XPASS until its marker is removed; unexpected setup errors and regressions in passing cases still fail CI. See [the timezone baseline](ruff-timezone-baseline.md) for the complete result matrix, input contract and unmasked reproduction command.
 
-The matrix is included in local regression verification, scenario CI and clean-install. Later timezone fixes must turn the expected failures into ordinary passing assertions while preserving the fixed HA-time contract. Batch 4 remains incomplete until the actual fixes, rule activation and shared integration acceptance checks are reviewed and verified.
+The first fix makes report-period generation use the HA clock, including conversion of aware reference instants and the local 13:00 horizon cutoff. Naive reference inputs remain HA-local and period bounds retain their database representation. Four former expected failures were proven to pass before removing their markers; matrix output is now 25 passed and 24 xfailed. Five additional reference-time cases cover conversion and compatibility; three of these failed on the original code. The historical pre-fix matrix is retained in the baseline document.
+
+The matrix is included in local regression verification, scenario CI and clean-install. Later timezone fixes must turn the remaining expected failures into ordinary passing assertions while preserving the fixed HA-time contract. Batch 4 remains incomplete until the remaining fixes, rule activation and shared integration acceptance checks are reviewed and verified.
 
 ## Completion and sequencing
 

@@ -31,8 +31,6 @@ KNOWN_FAILURES = {
     'test_scheduler_dispatch_uses_ha_clock': ('winter', 'summer', 'local-midnight', 'spring-forward', 'fall-back', 'first-0230', 'second-0230'),
     'test_available_charging_hours_are_elapsed_hours': ('winter', 'summer', 'local-midnight', 'spring-forward', 'fall-back', 'first-0230', 'second-0230'),
     'test_actual_optimizer_plan_is_process_zone_independent': ('winter', 'summer', 'local-midnight', 'spring-forward'),
-    'test_report_periods_are_process_zone_independent': ('local-midnight', 'fall-back'),
-    'test_today_uses_ha_midnight_and_real_day_length': ('local-midnight', 'fall-back'),
     'test_price_requests_are_process_zone_independent': ('local-midnight', 'fall-back'),
     'test_price_request_covers_local_calendar_days': ('local-midnight', 'fall-back', 'first-0230', 'second-0230'),
 }

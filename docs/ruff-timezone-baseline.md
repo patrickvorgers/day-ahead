@@ -1,6 +1,6 @@
 # Timezone contracts before batch 4 fixes
 
-Assessment date: 2026-10-14. This change adds tests only; it does not activate timezone rules or fix application behavior. It is based on batch 3 and must remain separate from the preceding draft pull requests.
+Assessment date: 2026-10-14. The original measurement below precedes application fixes. A separate report-period fix now follows that baseline on the same branch, based on batch 3. Timezone rules are not activated yet.
 
 ## Intended contract
 
@@ -40,11 +40,19 @@ Findings:
 - The EV elapsed-hours checks fail in all seven cases. Some runs return early before reaching the EV availability calculation because of the existing timestamp/grid mismatch; those failures are recorded as unreachable availability, not as measured arithmetic results.
 - Optimizer plan/cost equality fails for winter, summer, local-midnight and spring-forward. The three autumn optimizer comparisons pass for this small charging demand; that does not cancel their failing availability checks or prove all autumn plans correct.
 
+## Report-period fix
+
+Report-period generation now obtains the current clock in Home Assistant's configured timezone. A supplied timezone-aware reference instant is converted to that zone; a naive reference remains HA-local wall time. Calendar calculations and naive database-boundary representation are preserved, including the existing 13:00 horizon cutoff.
+
+Before removing any markers, the matrix produced strict XPASS for exactly four former failures: report-period equality and HA day boundaries for `local-midnight` and `fall-back`. Only those four markers were removed. All 14 report assertions now pass across the seven paired process-zone cases, including the 23-/25-hour day boundaries. The historical matrix above remains unchanged as pre-fix evidence.
+
+Five additional reference-time cases cover summer/autumn midnight conversion, the HA-local 13:00 cutoff and compatibility with naive reference times. The three aware-reference cases failed before the fix; both naive-reference cases already passed.
+
 ## Running and retiring known failures
 
-The measured 28 failures have narrow case/function entries in `KNOWN_FAILURES`, with `xfail(strict=True, raises=AssertionError)`. Routine CI therefore reports **21 passed, 28 xfailed** for this module; those failures are explicitly unresolved and are never reported as passing coverage. A newly passing known case produces a strict XPASS failure until its entry is removed. Unexpected exceptions and failures of previously passing cases fail CI normally.
+The original 28 failures had narrow case/function entries in `KNOWN_FAILURES`, with `xfail(strict=True, raises=AssertionError)`. After the report fix, 24 remain; routine matrix output is **25 passed, 24 xfailed**. Those failures are explicitly unresolved and are never reported as passing coverage. A newly passing known case produces a strict XPASS failure until its entry is removed. Unexpected exceptions and failures of previously passing cases fail CI normally.
 
-The full isolated regression suite with this baseline reports **214 passed, 58 skipped, 28 xfailed**. The existing 58 skips retain their previous meaning; they are separate from the measured timezone failures.
+The original full isolated regression suite reported **214 passed, 58 skipped, 28 xfailed**. After the report fix and five additional reference-time cases it reports **223 passed, 58 skipped, 24 xfailed**. The existing 58 skips retain their previous meaning; they are separate from the measured timezone failures.
 
 Run the complete matrix in a Linux development environment:
 
@@ -52,11 +60,11 @@ Run the complete matrix in a Linux development environment:
 .venv/bin/python -m pytest -c pytest-dev.ini dao/tests/prog/test_timezone_contracts.py -q -rxX
 ```
 
-Expose the actual pre-fix failures and save a baseline report:
+Expose the remaining failures (run on the original baseline revision to reproduce the pre-fix measurement):
 
 ```bash
 .venv/bin/python -m pytest -c pytest-dev.ini dao/tests/prog/test_timezone_contracts.py \
-  --runxfail --junitxml=.local/timezone-before-fixes.xml -q
+  --runxfail --junitxml=.local/timezone-unmasked.xml -q
 ```
 
 The unmasked command intentionally exits nonzero while defects remain. The matrix is included in the local isolated test selection, scenario CI regression step and Dev Container clean-install verification. For each batch 4 fix, remove only the corresponding known-failure entries and confirm those assertions pass in both process zones. Keep the HA contract and physical fixture unchanged unless a separately reviewed interface change requires adapting the replay transport representation.
