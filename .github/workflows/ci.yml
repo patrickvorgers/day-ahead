@@ -107,6 +107,7 @@ jobs:
             dao/tests/prog/test_logging_contracts.py \
             dao/tests/prog/test_report_periods.py \
             dao/tests/prog/test_annotation_contracts.py \
+            dao/tests/prog/test_timezone_contracts.py \
             dao/tests/webserver/test_route_security.py
 
       - name: Publish report to the job summary

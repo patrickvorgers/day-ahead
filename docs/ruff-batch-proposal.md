@@ -74,6 +74,16 @@ Verification:
 - Windows/Linux tooling acceptance and actual VS Code verification cover all 25 adopted rule fixtures; results are recorded in the draft pull request. Neither server-only checks nor the native editor check are presented as container-editor verification.
 - Repository lint passes without suppressions; the refreshed standard-default assessment reports 249 remaining diagnostics. Regenerating `SETTINGS.md` and `config_schema.json` produces no changes.
 
+## Fourth batch preparation - timezone regression baseline
+
+Branch: `chore/ruff-timezone-tests`, based on `chore/ruff-annotations-state`. This preparation adds tests and records the behavior before timezone fixes; it does not enable the six DTZ rules or change application code. Review against batch 3 to keep earlier changes outside the diff.
+
+The new Linux subprocess matrix runs identical HA configuration and canonical planning data under UTC and Europe/Amsterdam, with seven fixed UTC anchors covering winter, summer, local midnight, both DST transitions and both occurrences of 02:30 during the autumn transition. It exercises report periods, scheduler dispatch, provider bounds, actual EV availability and a real optimizer solve. No live HA, database or provider access is needed.
+
+The pre-fix measurement is 21 passed and 28 failed assertions across 49 checks, with no setup errors. Those exact case/function combinations are recorded as strict expected failures, not passing coverage. A fix that makes one pass produces strict XPASS until its marker is removed; unexpected setup errors and regressions in passing cases still fail CI. See [the timezone baseline](ruff-timezone-baseline.md) for the complete result matrix, input contract and unmasked reproduction command.
+
+The matrix is included in local regression verification, scenario CI and clean-install. Later timezone fixes must turn the expected failures into ordinary passing assertions while preserving the fixed HA-time contract. Batch 4 remains incomplete until the actual fixes, rule activation and shared integration acceptance checks are reviewed and verified.
+
 ## Completion and sequencing
 
 Each PR activates its rules in the shared configuration together with corrections and justified narrow exceptions. VS Code, hooks and CI therefore receive the same new checks as soon as the PR is merged. PR #916 remains unchanged; prepare the first batch on a dependent branch and adjust its base after #916 merges.
