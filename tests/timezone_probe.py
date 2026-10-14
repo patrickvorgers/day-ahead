@@ -177,11 +177,44 @@ def planning_probe(request):
     def trace(frame, event, arg):
         if frame.f_code.co_name == "calc_optimum":
             values = frame.f_locals
+            if "start_interval_dt" in values and "start_calendar" not in observed:
+                observed["start_calendar"] = {
+                    "start_epoch": values["start_ts"],
+                    "start_label": values["start_dt"].isoformat(),
+                    "interval_epoch": values["start_interval_ts"],
+                    "interval_label": values["start_interval_dt"].isoformat(),
+                }
+            if "end_fixed_ts" in values and "forecast_end" not in observed:
+                observed["forecast_end"] = {
+                    "label": values["end_fixed_dt"].isoformat(),
+                    "query_epoch": values["end_fixed_ts"],
+                    "input_end_epoch": int(instants[-1].timestamp()) + 900,
+                }
+            if "num_quaters" in values and "price_coverage" not in observed:
+                observed["price_coverage"] = {
+                    "start_label": values["start"].isoformat(),
+                    "last_label": values["end_prog"].isoformat(),
+                    "expected_quarters": values["num_quaters"],
+                    "available_quarters": len(values["price_data"]),
+                }
+            if "first_interval_nr" in values and "baseload_selection" not in observed:
+                observed["baseload_selection"] = {
+                    "first_label": values["time_first_interval"].isoformat(),
+                    "first_interval_nr": values["first_interval_nr"],
+                    "price_count": len(values["price_data"]),
+                    "forecast_count": len(values["prog_data"]),
+                }
             if "hours_avail" in values and "ready" in values and "available_hours" not in observed:
                 observed["available_hours"] = values["hours_avail"]
+                observed["charging_clock"] = {
+                    "start_label": values["start_dt"].isoformat(),
+                    "ready_label": values["ready"].isoformat(),
+                }
             if event == "return":
                 observed["start_epoch"] = values.get("start_ts")
                 observed["returned_false"] = arg is False
+                if "start_calendar" in observed:
+                    observed["exit_line"] = frame.f_lineno
                 # Use the calculator's actual epoch grid, not a second
                 # process-dependent conversion of its local display labels.
                 times = values.get("ts", [])

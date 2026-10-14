@@ -28,6 +28,7 @@ pytestmark = pytest.mark.skipif(not hasattr(time, "tzset"), reason="Application 
 # Measured failures on the unmodified application. Remove each entry when
 # its fix lands; strict XPASS makes an unnoticed fix fail CI instead of hiding it.
 KNOWN_FAILURES = {
+    'test_optimizer_start_calendar_uses_ha_zone': ('winter', 'summer', 'local-midnight', 'spring-forward', 'fall-back', 'first-0230', 'second-0230'),
     'test_available_charging_hours_are_elapsed_hours': ('winter', 'summer', 'local-midnight', 'spring-forward', 'fall-back', 'first-0230', 'second-0230'),
     'test_actual_optimizer_plan_is_process_zone_independent': ('winter', 'summer', 'local-midnight', 'spring-forward'),
 }
@@ -108,6 +109,32 @@ def test_available_charging_hours_are_elapsed_hours(matrix):
     for row in rows.values():
         assert "available_hours" in row["planning"], row["planning"]
         assert row["planning"]["available_hours"] == pytest.approx(expected)
+
+
+def test_optimizer_start_epoch_is_process_zone_independent(matrix):
+    """Pin the correct physical start separately from the broken clock label."""
+    _, payload, rows = matrix
+    instant = dt.datetime.fromisoformat(payload["instant"])
+    expected_epoch = int(instant.timestamp())
+    for row in rows.values():
+        clock = row["planning"]["start_calendar"]
+        assert clock["start_epoch"] == expected_epoch
+        # All anchors lie on quarter-hour boundaries, so no rounding is needed.
+        assert clock["interval_epoch"] == expected_epoch
+
+
+def test_optimizer_start_calendar_uses_ha_zone(matrix):
+    """The first epoch-to-calendar conversion must respect the HA clock."""
+    _, payload, rows = matrix
+    instant = dt.datetime.fromisoformat(payload["instant"])
+    expected = instant.astimezone(ZoneInfo(HA_ZONE)).replace(tzinfo=None)
+    for row in rows.values():
+        clock = row["planning"]["start_calendar"]
+        for key in ("start_label", "interval_label"):
+            label = dt.datetime.fromisoformat(clock[key])
+            if label.utcoffset() is not None:
+                assert label.timestamp() == instant.timestamp(), clock
+            assert label.replace(tzinfo=None) == expected, clock
 
 
 def test_actual_optimizer_plan_is_process_zone_independent(matrix):
