@@ -13,6 +13,7 @@ import sys
 import tempfile
 import time
 from contextlib import contextmanager
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 from mip import BINARY, CONTINUOUS, INTEGER, Model, minimize, xsum
@@ -110,22 +111,28 @@ class DaCalc(DaBase):
         if _start_dt is not None or _start_soc is not None or _start_ev_soc is not None:
             self.debug = True
         _LOGGER.info(f"Debug = {self.debug}")
+        planning_zone = ZoneInfo(self.time_zone)
         if _start_dt is None:
-            start_dt = dt.datetime.now()
+            start_dt = dt.datetime.now(planning_zone)
+        elif _start_dt.utcoffset() is None:
+            # Debug/reference dates without an offset represent HA wall time.
+            start_dt = _start_dt.replace(tzinfo=planning_zone)
         else:
-            start_dt = _start_dt
+            start_dt = _start_dt.astimezone(planning_zone)
         # om te testen met afwijkende startdatum/tijd
         # start_dt = dt.datetime(2025, 9, 16, 13, minute=30)
         start_ts = int(start_dt.timestamp())
         modulo = start_ts % self.interval_s
         if modulo >= (self.interval_s - 60):
             start_ts = start_ts + self.interval_s - modulo
-        start_dt = dt.datetime.fromtimestamp(start_ts)
+        # Keep the existing naive HA-local labels used by frames and device
+        # windows; retain physical epochs for interval rounding and identity.
+        start_dt = dt.datetime.fromtimestamp(start_ts, planning_zone).replace(tzinfo=None)
         start_hour = int(3600 * math.floor(start_ts / 3600))
         start_interval_ts = int(
             self.interval_s * math.floor(start_ts / self.interval_s)
         )
-        start_interval_dt = dt.datetime.fromtimestamp(start_interval_ts)
+        start_interval_dt = dt.datetime.fromtimestamp(start_interval_ts, planning_zone).replace(tzinfo=None)
         # loopt af van 1 (starts_ds == start_interval) naar
         # 0 (start_interval is bijna bij begin volgend interval)
         interval_fraction_first_interval = (
@@ -142,16 +149,24 @@ class DaCalc(DaBase):
                         print(line, end="")
 
         report = Report(self.file_name)
-        start = dt.datetime.fromtimestamp(start_hour)
+        start = dt.datetime.fromtimestamp(start_hour, planning_zone).replace(tzinfo=None)
         horizon_extension = self.config.prices.prediction.extension
         fixed_price_data = report.get_price_data(
-            dt.datetime.fromtimestamp(start_hour), end=None, interval=self.interval,
+            start, end=None, interval=self.interval,
             extension=0
         )
+
+        def interval_end_epoch(value, seconds):
+            # Localize the interval start before adding physical seconds. Adding
+            # to a naive label first can skip the repeated hour in autumn.
+            value = pd.Timestamp(value).to_pydatetime()
+            if value.utcoffset() is None:
+                value = value.replace(tzinfo=planning_zone)
+            return value.timestamp() + seconds
+
         if horizon_extension > 0:
-            start_prediction_dt = fixed_price_data["time"].iloc[-1] + dt.timedelta(seconds=self.interval_s)
-            start_prediction_dt = start_prediction_dt.to_pydatetime()
-            start_prediction_ts = start_prediction_dt.timestamp()
+            start_prediction_ts = interval_end_epoch(fixed_price_data["time"].iloc[-1], self.interval_s)
+            start_prediction_dt = dt.datetime.fromtimestamp(start_prediction_ts, planning_zone).replace(tzinfo=None)
             pred_price_data = report.get_price_data(
                 start_prediction_dt, end=None, interval="1hour",
                 extension=horizon_extension
@@ -179,9 +194,8 @@ class DaCalc(DaBase):
         while price_data.iloc[0]["time"] < start_interval_dt:
             price_data = price_data.iloc[1:]
         price_data.index = pd.to_datetime(price_data["time"])
-        end_fixed_dt = (fixed_price_data.iloc[-1]["time"] + dt.timedelta(seconds=self.interval_s))
-        end_fixed_dt = end_fixed_dt.to_pydatetime()
-        end_fixed_ts = end_fixed_dt.timestamp()
+        end_fixed_ts = interval_end_epoch(fixed_price_data.iloc[-1]["time"], self.interval_s)
+        end_fixed_dt = dt.datetime.fromtimestamp(end_fixed_ts, planning_zone).replace(tzinfo=None)
         fixed_prog_data = self.db_da.get_prognose_data(
             start=start_hour, end=end_fixed_ts, interval=self.interval
         )
@@ -189,8 +203,8 @@ class DaCalc(DaBase):
             _LOGGER.error("Er ontbreken meteo waarden, de berekening wordt afgebroken")
             return False
         if horizon_extension > 0:
-            end_prediction_dt = (pred_price_data.iloc[-1]["time"] + dt.timedelta(seconds=3600)).to_pydatetime()
-            end_prediction_ts = end_prediction_dt.timestamp()
+            end_prediction_ts = interval_end_epoch(pred_price_data.iloc[-1]["time"], 3600)
+            end_prediction_dt = dt.datetime.fromtimestamp(end_prediction_ts, planning_zone).replace(tzinfo=None)
             pred_prog_data = self.db_da.get_prognose_data(
                 start=start_prediction_ts, end=end_prediction_ts, interval="1hour"
             )
@@ -1707,12 +1721,15 @@ class DaCalc(DaBase):
                     ready.hour < start_dt.hour
                 ):
                     ready = ready + dt.timedelta(days=1)
-            hours_avail = max(0, (ready - start_dt).total_seconds() / 3600)
+            # HA deadline labels are local; elapsed charging time must use the
+            # physical timeline so skipped/repeated hours count correctly.
+            ready_ts = ready.replace(tzinfo=planning_zone).timestamp()
+            hours_avail = max(0, (ready_ts - start_ts) / 3600)
             if instant_charge:
                 # instant charge has no real deadline, so bound hours_avail by the
                 # planning horizon instead of the (possibly stale) configured ready time
-                horizon_end = tijd[U - 1] + dt.timedelta(seconds=self.interval_s)
-                hours_avail = max(0, (horizon_end - start_dt).total_seconds() / 3600)
+                horizon_end_ts = ts[U - 1] + self.interval_s
+                hours_avail = max(0, (horizon_end_ts - start_ts) / 3600)
             # model_dump() is required here: after building the list, two computed
             # keys ("power" and "accu_power") are injected into each dict at runtime
             # based on ampere × voltage and efficiency.  These derived values don't

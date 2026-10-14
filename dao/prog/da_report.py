@@ -6,6 +6,7 @@ import json
 import logging
 import math
 from io import BytesIO
+from zoneinfo import ZoneInfo
 
 import matplotlib.pyplot as plt
 
@@ -768,12 +769,19 @@ class Report(DaBase):
         return
 
     def make_periodes(self, _now: datetime.datetime | None = None):
+        """Build HA-local calendar periods, retaining naive database boundaries.
+
+        A naive reference time already represents HA-local wall time; an aware
+        reference time is converted to the configured Home Assistant timezone.
+        """
         def create_dict(name, _vanaf, _tot, interval):
             return {name: {"vanaf": _vanaf, "tot": _tot, "interval": interval}}
 
         # vandaag
         if _now is None:
-            now = datetime.datetime.now()
+            now = datetime.datetime.now(ZoneInfo(self.time_zone))
+        elif _now.utcoffset() is not None:
+            now = _now.astimezone(ZoneInfo(self.time_zone))
         else:
             now = _now
         vanaf = datetime.datetime(now.year, now.month, now.day)
