@@ -42,11 +42,10 @@ def calc_r2(serie_x: pd.Series, serie_y: pd.Series) -> float:
 
 
 class Report(DaBase):
-    periodes = {}
-
     def __init__(
             self, file_name: str = "../data/options.json", _now: datetime.datetime | None = None
     ):
+        self.periodes: dict[str, dict] = {}
         super().__init__(file_name=file_name)
         if self.config is None:
             return
