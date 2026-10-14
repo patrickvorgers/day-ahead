@@ -120,7 +120,7 @@ All 32 cases pass across UTC/Amsterdam process zones, hourly/quarter-hour interv
 
 Full isolated suite: **334 passed, 58 skipped, no expected failures**. All 40 existing synthetic scenarios pass. The probe now waits for both boundary variables before recording the new assignment order.
 
-CI investigation found the previous start-clock and elapsed-time commits' scenario jobs hit the five-minute isolated-regression step limit after their 40 scenario solves passed. The last elapsed-time commit's other completed checks, including clean-install, passed. A separate CI commit raises that step to 15 minutes for the expanded paired-process/real-solver suite; individual probe timeouts remain bounded. CI prints the ten slowest test durations. Fresh remote status must be checked independently; the local suite result does not imply the hosted run passed.
+CI investigation found the previous start-clock and elapsed-time commits' scenario jobs hit the five-minute isolated-regression step limit after their 40 scenario solves passed. The last elapsed-time commit's other completed checks, including clean-install, passed. A separate CI commit raises that step to 15 minutes for the expanded paired-process/real-solver suite; individual probe timeouts remain bounded. The observation hook now traces only `calc_optimum()` frames instead of every library line; the same assertions and real solves remain. CI prints the ten slowest test durations. Fresh remote status must be checked independently; the local suite result does not imply the hosted run passed.
 
 ## Running and retiring known failures
 

@@ -186,6 +186,10 @@ def planning_probe(request):
         """Stop an isolated capacity test before model constraints or solving."""
 
     def trace(frame, event, arg):
+        # Observe only optimizer locals; tracing every pandas/solver/library
+        # line adds substantial CI overhead without contributing evidence.
+        if frame.f_code.co_name != "calc_optimum":
+            return None
         if frame.f_code.co_name == "calc_optimum":
             values = frame.f_locals
             if "start_interval_dt" in values and "start_calendar" not in observed:
