@@ -496,17 +496,20 @@ Before submitting your PR, ensure:
 
 For Ruff adoption changes, use the [batch plan](docs/ruff-batch-proposal.md) and the [acceptance checklist](docs/ruff-rollout.md#acceptance-criteria-for-every-ruff-adoption-pull-request). The Windows/Linux developer-tool jobs compare effective settings and exercise all adopted-rule fixtures through the real Ruff language server, configured pre-commit hook and CI command.
 
-Actual editor/save verification is a separate VS Code extension-host test in `tests/vscode_ruff_adoption`. To run it on a host with VS Code, the Ruff extension and the local project tools installed, first open and trust this repository normally. In PowerShell, from the repository root:
+Actual editor/save verification uses a separate, generated native-host workspace with its own pinned Ruff tools. It has no Dev Container configuration and does not reuse the application's virtual environment. On a host with VS Code, its Ruff extension, Git and Python 3.12 or newer installed, close any earlier verification window and run from this repository:
 
-```powershell
-$ruffExtension = code --locate-extension charliermarsh.ruff
-code --new-window --user-data-dir "$PWD/.local/ruff-editor-user-data" `
-  --extensionDevelopmentPath "$PWD/tests/vscode_ruff_adoption" `
-  --extensionDevelopmentPath $ruffExtension `
-  --extensionTestsPath "$PWD/tests/vscode_ruff_adoption/tests.js" "$PWD"
+```bash
+python scripts/verify_ruff_editor.py prepare
+python scripts/verify_ruff_editor.py open
 ```
 
-Open the repository normally with that same `--user-data-dir` and complete its trust prompt before running the test. The test host explicitly loads the installed Ruff extension because extension-test mode can disable ordinary extensions. Results are written to `.local/ruff-editor-acceptance/results.json`; successful acceptance also requires confirming in **Output > Ruff** that the server uses the pinned `.venv-tools/ruff-project` launcher. An untrusted workspace can use bundled Ruff and is rejected by the suite. These native-host checks require host-local tools; a container environment cannot supply a Windows executable. Record container editor verification separately when performed.
+Trust the local `ruff-editor-workspace` through the normal VS Code prompt, then close that test window. Do not choose **Reopen in Container**. Run:
+
+```bash
+python scripts/verify_ruff_editor.py run
+```
+
+The runner opens a normal development extension host; it deliberately avoids `--extensionTestsPath`, whose special test mode can disregard the previously granted workspace trust. The helper also provides **Day Ahead: Verify Ruff adoption** in the Command Palette. Results are written to `.local/ruff-editor-workspace/.local/ruff-editor-acceptance/results.json`. Successful acceptance requires `workspaceTrusted: true`, the pinned Ruff version, every rule passing and **Output > Ruff** confirming the `.venv-tools/ruff-project` server. Temporary probe files are outside Ruff's excluded `.local` directory and are removed after the run. Record container editor verification separately when performed.
 
 The Dev Container and the shared application setup already install these tools. The manual procedure below is for Ruff-only work or an existing environment that has not used that setup.
 

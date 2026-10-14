@@ -17,7 +17,7 @@ The assessment removes the explicit lint selection from a temporary copy of ruff
 
 The five lint batches account for all 750 current diagnostics: 67 + 400 + 37 + 186 + 60. The final lint batch includes 51 error/control-flow diagnostics and nine unused-suppression diagnostics. RUF100 is deferred until the final selection is established: several current suppressions refer to rules enabled by the existing gate but not by the assessed defaults. Do not remove valid suppressions merely because an assessment configuration disables their rules.
 
-## First pull request - implemented; acceptance verification in progress
+## First pull request - implemented and acceptance verified
 
 Branch: `chore/ruff-first-batch`. The branch includes the acceptance-criteria change from the former adoption-plan branch. Submit this batch separately from the developer-environment PR; while that PR is open, review against `chore/development-environment` to isolate the batch diff.
 
@@ -51,7 +51,7 @@ Six PRs are a planning estimate, not a requirement. Split the time-zone or error
 - Linux acceptance suite: 12 tests passed.
 - Isolated application regression suite: 144 passed, 58 skipped, including both chart-boolean outcomes.
 - Synthetic scenarios: all 40 passed. Final targeted web regression checks: 27 passed.
-- Actual VS Code diagnostics/save verification: pending trusted-workspace rerun. An untrusted-workspace run was rejected as acceptance evidence because it used the extension bundled version.
-- GitHub CI for the implementation: Ruff lint, model documentation, both Windows/Linux developer-tool jobs, both scenario jobs and clean-install passed. Documentation-only status updates do not replace the pending real-editor verification.
+- Actual native Windows VS Code diagnostics/save verification: all 18 rules passed in VS Code 1.141.1, with `workspaceTrusted: true` and Ruff 0.16.10. The server log confirms the project launcher. Unsafe fixes remained manual, safe save fixes matched CLI output, and corrected documents cleared diagnostics. Untrusted/bundled-version runs were excluded from acceptance evidence.
+- GitHub CI for the implementation: Ruff lint, model documentation, both Windows/Linux developer-tool jobs, both scenario jobs and clean-install passed. The isolated editor prepare/run procedure was smoke-tested successfully after closing the earlier test window; final helper changes are submitted for a new CI run.
 
-Update this status with final results before offering the batch for review.
+The editor verifier now prepares a separate native workspace and uses a normal development extension host. It preserves normal trust prompts and avoids opening a Windows virtual environment inside a Linux container. Use `scripts/verify_ruff_editor.py` as documented in the developer guide.

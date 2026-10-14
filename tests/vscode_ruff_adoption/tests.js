@@ -16,8 +16,10 @@ async function until(check, description) {
 
 exports.run = async () => {
   const root = vscode.workspace.workspaceFolders[0].uri.fsPath;
-  const directory = path.join(root, '.local', 'ruff-editor-acceptance');
+  const directory = fs.mkdtempSync(path.join(root, 'ruff-editor-acceptance-cases-'));
+  const outputDirectory = path.join(root, '.local', 'ruff-editor-acceptance');
   fs.mkdirSync(directory, {recursive: true});
+  fs.mkdirSync(outputDirectory, {recursive: true});
   const launcher = path.join(root, '.venv-tools', process.platform === 'win32' ? 'ruff-project.exe' : 'ruff-project');
   const cases = JSON.parse(fs.readFileSync(path.join(root, 'tests', 'ruff_adoption_cases.json'), 'utf8'));
   const result = {vscode: vscode.version, remoteName: vscode.env.remoteName || null, checks: []};
@@ -77,6 +79,7 @@ exports.run = async () => {
     result.error = String(error.stack || error);
     throw error;
   } finally {
-    fs.writeFileSync(path.join(directory, 'results.json'), JSON.stringify(result, null, 2));
+    fs.writeFileSync(path.join(outputDirectory, 'results.json'), JSON.stringify(result, null, 2));
+    fs.rmdirSync(directory);
   }
 };
