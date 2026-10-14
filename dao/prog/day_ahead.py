@@ -13,6 +13,7 @@ import sys
 import tempfile
 import time
 from contextlib import contextmanager
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 from mip import BINARY, CONTINUOUS, INTEGER, Model, minimize, xsum
@@ -110,22 +111,28 @@ class DaCalc(DaBase):
         if _start_dt is not None or _start_soc is not None or _start_ev_soc is not None:
             self.debug = True
         _LOGGER.info(f"Debug = {self.debug}")
+        planning_zone = ZoneInfo(self.time_zone)
         if _start_dt is None:
-            start_dt = dt.datetime.now()
+            start_dt = dt.datetime.now(planning_zone)
+        elif _start_dt.utcoffset() is None:
+            # Debug/reference dates without an offset represent HA wall time.
+            start_dt = _start_dt.replace(tzinfo=planning_zone)
         else:
-            start_dt = _start_dt
+            start_dt = _start_dt.astimezone(planning_zone)
         # om te testen met afwijkende startdatum/tijd
         # start_dt = dt.datetime(2025, 9, 16, 13, minute=30)
         start_ts = int(start_dt.timestamp())
         modulo = start_ts % self.interval_s
         if modulo >= (self.interval_s - 60):
             start_ts = start_ts + self.interval_s - modulo
-        start_dt = dt.datetime.fromtimestamp(start_ts)
+        # Keep the existing naive HA-local labels used by frames and device
+        # windows; retain physical epochs for interval rounding and identity.
+        start_dt = dt.datetime.fromtimestamp(start_ts, planning_zone).replace(tzinfo=None)
         start_hour = int(3600 * math.floor(start_ts / 3600))
         start_interval_ts = int(
             self.interval_s * math.floor(start_ts / self.interval_s)
         )
-        start_interval_dt = dt.datetime.fromtimestamp(start_interval_ts)
+        start_interval_dt = dt.datetime.fromtimestamp(start_interval_ts, planning_zone).replace(tzinfo=None)
         # loopt af van 1 (starts_ds == start_interval) naar
         # 0 (start_interval is bijna bij begin volgend interval)
         interval_fraction_first_interval = (
@@ -142,10 +149,10 @@ class DaCalc(DaBase):
                         print(line, end="")
 
         report = Report(self.file_name)
-        start = dt.datetime.fromtimestamp(start_hour)
+        start = dt.datetime.fromtimestamp(start_hour, planning_zone).replace(tzinfo=None)
         horizon_extension = self.config.prices.prediction.extension
         fixed_price_data = report.get_price_data(
-            dt.datetime.fromtimestamp(start_hour), end=None, interval=self.interval,
+            start, end=None, interval=self.interval,
             extension=0
         )
         if horizon_extension > 0:

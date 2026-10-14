@@ -1,6 +1,6 @@
 # Timezone contracts before batch 4 fixes
 
-Assessment date: 2026-10-14. The original measurement below precedes application fixes. Separate report-period, price-boundary and scheduler fixes now follow that baseline on the same branch, based on batch 3. Timezone rules are not activated yet.
+Assessment date: 2026-10-14. The original measurement below precedes application fixes. Separate report-period, price-boundary, scheduler and optimizer start-clock fixes now follow that baseline on the same branch, based on batch 3. Timezone rules are not activated yet.
 
 ## Intended contract
 
@@ -90,11 +90,21 @@ Two observed downstream consequences:
 
 Fix start-clock/calendar preprocessing before changing EV duration arithmetic. Start-clock correction alone is not presented as sufficient to fix DST elapsed-time subtraction or every optimizer difference. The historical 49-check matrix remains 38 passed/11 expected failures; the expanded 63-check matrix is 45 passed/18 expected failures because seven passing epoch assertions and seven independently measured calendar failures were added, not because application behavior regressed.
 
+## Optimizer start-clock fix
+
+The calculator now reads the current instant in HA time, interprets naive debug/reference dates as HA-local (preserving `fold`) and converts aware references to that zone. Interval rounding remains epoch-based. It reconstructs start, interval and price-request hour labels explicitly in HA time, retaining naive labels for the existing frame/device-window interfaces. This is a boundary correction, not a migration of all optimizer arithmetic to aware datetimes.
+
+Before marker removal, exactly 15 previously failing assertions produced strict XPASS: all seven start-calendar checks, all four previously failing optimizer comparisons, and available-hours checks for `winter`, `summer`, `local-midnight` and `second-0230`. Only those entries were removed. The expanded matrix now has 60 passed and three expected failures; the original 49 checks alone have 46 passed and three expected failures. Equality of these synthetic plans does not establish correct elapsed charging time across every transition.
+
+Eight added entry-path tests stop before database/model work. They exercise naive HA and aware UTC references, unchanged next-quarter rounding, and both occurrences of the autumn repeated minute under both process zones. Four failed before the fix; all eight pass afterward.
+
+The remaining expected failures are elapsed charging hours for `spring-forward`, `fall-back` and `first-0230`. The existing subtraction of naive local labels is unchanged. Other previously observed conversions, including the forecast-end `.timestamp()` boundary, also remain outside this start-clock fix and require separate work even though ReplayIO's unfiltered frames allow the optimizer comparisons to pass.
+
 ## Running and retiring known failures
 
-The original 28 failures had narrow case/function entries in `KNOWN_FAILURES`, with `xfail(strict=True, raises=AssertionError)`. After the report fix, 24 remained; after the price-boundary fix, 18 remained. With the scheduler fix, the original matrix output is **38 passed, 11 xfailed**. Adding optimizer start-clock controls makes the expanded output **45 passed, 18 xfailed**. The remaining failures concern optimizer calendar labels, EV availability and optimizer behavior; they are explicitly unresolved and are never reported as passing coverage. A newly passing known case produces a strict XPASS failure until its entry is removed. Unexpected exceptions and failures of previously passing cases fail CI normally.
+The original 28 failures had narrow case/function entries in `KNOWN_FAILURES`, with `xfail(strict=True, raises=AssertionError)`. After the report fix, 24 remained; after the price-boundary fix, 18 remained. With the scheduler fix, the original matrix output was **38 passed, 11 xfailed**. Added optimizer start-clock controls expanded it to **45 passed, 18 xfailed** before the fix. After the start-clock fix, current output is **60 passed, 3 xfailed**. The remaining failures concern DST elapsed charging time; they are explicitly unresolved and are never reported as passing coverage. A newly passing known case produces a strict XPASS failure until its entry is removed. Unexpected exceptions and failures of previously passing cases fail CI normally.
 
-The original full isolated regression suite reported **214 passed, 58 skipped, 28 xfailed**. After the report fix and five additional reference-time cases it reported **223 passed, 58 skipped, 24 xfailed**. With the price-boundary fix and its ten additional cases it reported **239 passed, 58 skipped, 18 xfailed**. With the scheduler fix and 15 added scheduler cases it reported **261 passed, 58 skipped, 11 xfailed**. The start-clock diagnostic controls expand it to **268 passed, 58 skipped, 18 xfailed** without application changes. The existing 58 skips retain their previous meaning; they are separate from the measured timezone failures.
+The original full isolated regression suite reported **214 passed, 58 skipped, 28 xfailed**. After the report fix and five additional reference-time cases it reported **223 passed, 58 skipped, 24 xfailed**. With the price-boundary fix and its ten additional cases it reported **239 passed, 58 skipped, 18 xfailed**. With the scheduler fix and 15 added scheduler cases it reported **261 passed, 58 skipped, 11 xfailed**. The start-clock diagnostic controls expanded it to **268 passed, 58 skipped, 18 xfailed** without application changes. With the start-clock fix and eight entry-path tests it reports **291 passed, 58 skipped, 3 xfailed**. The existing 58 skips retain their previous meaning; they are separate from the measured timezone failures.
 
 Run the complete matrix in a Linux development environment:
 
