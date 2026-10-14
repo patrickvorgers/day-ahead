@@ -494,6 +494,20 @@ Before submitting your PR, ensure:
 
 #### Set up automatic feedback in VS Code
 
+For Ruff adoption changes, use the [batch plan](docs/ruff-batch-proposal.md) and the [acceptance checklist](docs/ruff-rollout.md#acceptance-criteria-for-every-ruff-adoption-pull-request). The Windows/Linux developer-tool jobs compare effective settings and exercise all adopted-rule fixtures through the real Ruff language server, configured pre-commit hook and CI command.
+
+Actual editor/save verification is a separate VS Code extension-host test in `tests/vscode_ruff_adoption`. To run it on a host with VS Code, the Ruff extension and the local project tools installed, first open and trust this repository normally. In PowerShell, from the repository root:
+
+```powershell
+$ruffExtension = code --locate-extension charliermarsh.ruff
+code --new-window --user-data-dir "$PWD/.local/ruff-editor-user-data" `
+  --extensionDevelopmentPath "$PWD/tests/vscode_ruff_adoption" `
+  --extensionDevelopmentPath $ruffExtension `
+  --extensionTestsPath "$PWD/tests/vscode_ruff_adoption/tests.js" "$PWD"
+```
+
+Open the repository normally with that same `--user-data-dir` and complete its trust prompt before running the test. The test host explicitly loads the installed Ruff extension because extension-test mode can disable ordinary extensions. Results are written to `.local/ruff-editor-acceptance/results.json`; successful acceptance also requires confirming in **Output > Ruff** that the server uses the pinned `.venv-tools/ruff-project` launcher. An untrusted workspace can use bundled Ruff and is rejected by the suite. These native-host checks require host-local tools; a container environment cannot supply a Windows executable. Record container editor verification separately when performed.
+
 The Dev Container and the shared application setup already install these tools. The manual procedure below is for Ruff-only work or an existing environment that has not used that setup.
 
 Open the repository root in VS Code and install the recommended **Python** and **Ruff** extensions from the Extensions view (`@recommended`). Select an installed Python 3.12 or newer with **Python: Select Interpreter**, then choose **Terminal > Run Task > Development: Set up Ruff**. If Ruff was already running before setup, run **Ruff: Restart Server** from the Command Palette. A fresh Dev Container starts Ruff automatically after setup. In a remote workspace, install the extensions in that workspace's extension host.

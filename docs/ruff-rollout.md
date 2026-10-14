@@ -135,7 +135,9 @@ Enable Ruff formatting on save in VS Code and add the pinned `ruff-format` pre-c
 
 ## Stage 4 — Adopt standard stable lint rules
 
-**Status: pending. This track can progress independently of formatting.**
+**Status: the first local-simplification batch is enabled; the remaining standard lint rules are pending. This track can progress independently of formatting.**
+
+See [the batch plan](ruff-batch-proposal.md) for the rule groups, implementation status and verification results. Each batch activates its rules in the shared configuration together with its corrections and acceptance checks.
 
 ### 4.1 — Assess standard-rule findings
 
