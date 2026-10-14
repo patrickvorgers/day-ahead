@@ -36,6 +36,23 @@ There are 63 distinct starting lines in these 67 diagnostics. Ruff labels 34 fix
 
 The adoption acceptance criteria are included in this branch and first PR; there is no separate documentation PR. The version/effective-settings checks and 18 invalid/corrected fixtures are implemented in `tests/test_developer_tools.py` and `tests/ruff_adoption_cases.json`. Both Windows and Linux CI jobs run these checks through the configured hook, the actual CI command and the real Ruff language server. `tests/vscode_ruff_adoption` supplies a separate actual VS Code extension-host suite for diagnostics, explicit save actions and corrected documents. It requires a trusted workspace and the pinned project launcher; language-server-only checks are not reported as editor save verification. Formatting remains out of scope.
 
+## Second pull request - module logging
+
+Branch: `chore/ruff-logging`, based on `chore/ruff-first-batch`. Review this draft against the first-batch branch so that neither its changes nor the developer-environment changes are offered for review again. Do not merge it back into that branch while the earlier pull requests are pending. After those changes merge upstream, align this branch with upstream and submit the logging batch separately.
+
+The logging assessment reports 400 diagnostics in 14 files: 399 LOG015 root-logger calls and one TRY401 redundant exception message. This batch enables both codes in the shared configuration and replaces emitting calls with `_LOGGER = logging.getLogger(__name__)` per module. Root logging remains responsible for configuration, handlers and levels. Module loggers inherit the effective level and propagate records to the existing handlers; no module adds a handler or changes the log format. The source module is available in each record's name without changing the text consumed by scenario parsers.
+
+The Nordpool failure path retains two ERROR records and its existing return behavior. The exception record now supplies provider/date context while the exception type, message and traceback remain attached through `exception()`. The second error message is retained. No changes to exception policy, price retrieval or scenario baselines are included.
+
+Verification:
+
+- All 400 logging diagnostics are resolved without suppressions; repository lint passes. The refreshed standard-default assessment reports 286 remaining diagnostics, including findings introduced by the new first-batch regression fixtures since the original snapshot.
+- Sixteen added behavioral cases cover inherited logger levels and propagation, existing scenario capture, console/file output, notification delivery, task failure return codes and tracebacks, Nordpool failure context and the dashboard configuration-error fallback. The local regression selection and CI include them.
+- Full isolated Linux regression suite: 182 passed, 58 skipped. All 40 synthetic scenarios passed.
+- Windows and Linux tooling acceptance: 12 tests passed on each platform. The invalid/corrected rule fixtures now cover all 20 adopted rules through the configured hook, actual CI command and real language server.
+- Actual native Windows VS Code 1.141.1 verification: all 20 rule fixtures passed diagnostics, explicit-save and correction checks in the trusted workspace using the pinned Ruff 0.16.10 launcher. Neither new logging rule has a safe automatic fix; saving agrees with CLI behavior and manual corrections clear the diagnostics.
+- GitHub CI results are recorded in the logging draft pull request.
+
 ## Completion and sequencing
 
 Each PR activates its rules in the shared configuration together with corrections and justified narrow exceptions. VS Code, hooks and CI therefore receive the same new checks as soon as the PR is merged. PR #916 remains unchanged; prepare the first batch on a dependent branch and adjust its base after #916 merges.
